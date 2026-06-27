@@ -8,8 +8,13 @@ async function checkout(req, res, next) {
     });
     if (!order) return res.status(404).json({ success: false, message: 'Order tidak ditemukan.' });
 
+    // Only the order's customer can checkout
     const customer = order.Customer;
-    const user = customer?.User;
+    if (!customer || customer.user_id !== req.user.user_id) {
+      return res.status(403).json({ success: false, message: 'Hanya pemilik order yang dapat melakukan pembayaran.' });
+    }
+
+    const user = customer.User;
 
     const result = await createTransaction(order, { username: user?.username, email: user?.email, no_hp: customer?.no_hp });
 
@@ -31,7 +36,10 @@ async function status(req, res, next) {
   try {
     const txn = await getTransaction(req.params.id);
     if (!txn) return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
-    res.json({ success: true, data: { transaction: txn } });
+    // Only return non-sensitive fields for non-owner
+    const isOwner = req.user.user_id === (await require('../models').Order.findByPk(txn.order_id, { include: [{ model: require('../models').Customer, attributes: ['user_id'] }] }))?.Customer?.user_id;
+    const isAdmin = req.user.role === 'admin';
+    res.json({ success: true, data: { transaction: { id: txn.id, order_id: txn.order_id, amount: txn.amount, status: txn.status, payment_method: txn.payment_method, ...(isOwner || isAdmin ? { commission: txn.commission, net_amount: txn.net_amount, midtrans_id: txn.midtrans_id, paid_at: txn.paid_at, released_at: txn.released_at } : {}) } } });
   } catch (error) { next(error); }
 }
 

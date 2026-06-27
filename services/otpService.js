@@ -14,7 +14,7 @@ async function send(userId, email, type) {
   await OtpCode.create({ user_id: userId, code: hashCode(code), type, expires_at: expiresAt });
   const sent = await sendOTP(email, code, type);
   if (!sent) console.warn(`[OTP] Email not sent for user ${userId}`);
-  return { success: true, expires_in: OTP_EXPIRY_SECONDS, _code: code };
+  return { success: true, expires_in: OTP_EXPIRY_SECONDS, ...(process.env.NODE_ENV === 'development' ? { _code: code } : {}) };
 }
 
 async function verify(userId, code, type) {

@@ -56,6 +56,7 @@ function extractKeyword(layanan) {
     Listrik: ['listrik', 'elektrik', 'kabel', 'instalasi listrik'],
     Pipa: ['pipa', 'ledeng', 'bocor', 'saluran'],
     Atap: ['atap', 'genteng', 'bocor atap'],
+    Lainnya: ['lainnya', 'lain', 'umum', 'general'],
   };
 
   const lower = layanan.toLowerCase();

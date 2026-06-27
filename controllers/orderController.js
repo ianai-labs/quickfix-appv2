@@ -138,11 +138,16 @@ async function detail(req, res, next) {
       return res.status(404).json({ success: false, message: 'Order tidak ditemukan.' });
     }
 
-    // Authorization: customer hanya bisa lihat order sendiri
+    // Authorization: customer only own orders, technician only assigned orders
     if (req.user.role === USER_ROLES.CUSTOMER) {
       const customer = await Customer.findOne({ where: { user_id: req.user.user_id } });
       if (!customer || order.customer_id !== customer.id) {
         return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke order ini.' });
+      }
+    } else if (req.user.role === USER_ROLES.TECHNICIAN) {
+      const tech = await Technician.findOne({ where: { user_id: req.user.user_id } });
+      if (!tech || order.technician_id !== tech.id) {
+        return res.status(403).json({ success: false, message: 'Anda hanya dapat melihat order yang di-assign ke Anda.' });
       }
     }
 
