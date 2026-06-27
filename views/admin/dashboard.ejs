@@ -19,20 +19,19 @@
 <script src="/js/main.js"></script>
 <script>
 async function loadDashboard() {
-  const [techsRes, ordersData] = await Promise.all([
+  const [techsRes, ordersRes, statsRes] = await Promise.all([
     fetch('/api/technicians'),
-    (async () => { const r = await fetch('/api/orders?limit=200'); const d = await r.json(); return d; })(),
+    fetch('/api/orders?limit=10'),
+    fetch('/api/admin/stats'),
   ]);
   const techs = (await techsRes.json()).data.technicians;
+  const ordersData = await ordersRes.json();
   const orders = ordersData.data?.orders || [];
-  const totalOrderCount = ordersData.data?.pagination?.total_items || orders.length;
+  const stats = (await statsRes.json()).data || {};
 
-  // Batch payment statuses
-  const txnRes = await Promise.all(orders.slice(0,50).map(o => fetch(`/api/payment/status/${o.id}`).then(r => r.json()).catch(() => ({}))));
-  const allTxns = txnRes.map(t => t.data?.transaction).filter(Boolean);
-
-  const totalRevenue = allTxns.filter(t => t.status === 'paid' || t.status === 'released').reduce((s, t) => s + Number(t.amount), 0);
-  const totalCommission = allTxns.filter(t => t.status === 'paid' || t.status === 'released').reduce((s, t) => s + Number(t.commission), 0);
+  const totalOrderCount = ordersData.data?.pagination?.total_items || 0;
+  const totalRevenue = stats.totalRevenue || 0;
+  const totalCommission = stats.totalCommission || 0;
   const online = techs.filter(t => t.status === 'online').length;
   const premium = techs.filter(t => t.is_premium).length;
 
@@ -45,8 +44,9 @@ async function loadDashboard() {
     { label: 'Komisi', value: formatIDR(totalCommission), icon: '📊', color: 'var(--danger)', isFormatted: true },
   ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" ${!s.isFormatted?`style="color:${s.color}"`:''}>${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
 
-  // Order status chart
-  const statusCounts = {}; orders.forEach(o => statusCounts[o.status] = (statusCounts[o.status]||0)+1);
+  // Order status chart from stats API
+  const statusCounts = {};
+  (stats.orderCounts || []).forEach(s => statusCounts[s.status] = Number(s.count));
   const chartColors = { pending:'#6c757d', assigned:'#17a2b8', on_the_way:'#ffc107', in_progress:'#007bff', done:'#28a745', cancelled:'#dc3545' };
   const chartLabels = { pending:'Pending', assigned:'Assigned', on_the_way:'OTW', in_progress:'Progress', done:'Selesai', cancelled:'Batal' };
   const maxCount = Math.max(...Object.values(statusCounts), 1);
