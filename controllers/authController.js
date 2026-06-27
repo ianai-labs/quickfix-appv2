@@ -229,7 +229,7 @@ async function login(req, res, next) {
     }
 
     // Send OTP
-    await otpService.send(user.id, user.email, OTP_TYPES.DEVICE_VERIFY);
+    const otpResult = await otpService.send(user.id, user.email, OTP_TYPES.DEVICE_VERIFY);
 
     // Issue a temp token for OTP verification
     const tempToken = jwt.sign(
@@ -238,16 +238,8 @@ async function login(req, res, next) {
       { expiresIn: '10m' }
     );
 
-    // Dev mode: get the OTP code to display in the modal
-    let devOtpCode = null;
-    if (process.env.NODE_ENV === 'development') {
-      const { OtpCode } = require('../models');
-      const latestOtp = await OtpCode.findOne({
-        where: { user_id: user.id, type: OTP_TYPES.DEVICE_VERIFY, used: false },
-        order: [['created_at', 'DESC']],
-      });
-      if (latestOtp) devOtpCode = latestOtp.code;
-    }
+    // Dev mode: include raw OTP code
+    let devOtpCode = process.env.NODE_ENV === 'development' ? otpResult._code : null;
 
     return res.json({
       success: true,
