@@ -48,9 +48,20 @@ async function loadOrders(page = 1) {
     <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Teknisi</th><th>Status</th><th>Pembayaran</th><th>Tgl</th><th></th></tr></thead>
     <tbody>${orders.map((o,i) => {
       const txn = txns[i]?.data?.transaction;
-      return `<tr><td><strong>#${o.id}</strong></td><td>${o.layanan}</td><td>${o.technician ? esc(o.technician.nama) : '<span style="color:var(--gray-300)">Menunggu</span>'}</td><td>${statusBadge(o.status)}</td><td>${txn ? statusBadge(txn.status) + (txn.amount ? ' '+formatIDR(txn.amount) : '') : '<span class="badge badge-pending">-</span>'}</td><td>${formatDate(o.created_at)}</td><td><a href="/customer/orders/${o.id}" class="btn btn-sm btn-outline">Detail</a></td></tr>`;
+      return `<tr><td><strong>#${o.id}</strong></td><td>${o.layanan}</td><td>${o.technician ? esc(o.technician.nama) : '<span style="color:var(--gray-300)">Menunggu</span>'}</td><td>${statusBadge(o.status)}</td><td>${txn ? statusBadge(txn.status) + (txn.amount ? ' '+formatIDR(txn.amount) : '') : '<span class="badge badge-pending">-</span>'}</td><td>${formatDate(o.created_at)}</td><td style="display:flex;gap:4px">
+        <a href="/customer/orders/${o.id}" class="btn btn-sm btn-outline">Detail</a>
+        ${['pending','assigned'].includes(o.status) ? `<button class="btn btn-sm btn-outline" style="color:var(--danger);border-color:var(--danger)" onclick="cancelFromList(${o.id})">Batal</button>` : ''}
+      </td></tr>`;
     }).join('')}</tbody></table></div>
     ${renderPagination(pag, 'loadOrders')}`;
+}
+
+async function cancelFromList(orderId) {
+  if (!(await confirmAction('Batalkan order #' + orderId + '?'))) return;
+  const res = await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
+  const data = await res.json();
+  if (data.success) { showToast('Order dibatalkan', 'info'); loadOrders(currentPage); }
+  else showToast(data.message, 'error');
 }
 
 loadOrders();
