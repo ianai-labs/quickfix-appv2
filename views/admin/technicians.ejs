@@ -40,8 +40,8 @@ async function togglePremium(id, current) {
     body: JSON.stringify({ is_premium: !current }),
   });
   const result = await res.json();
-  if (result.success) loadTechnicians();
-  else alert(result.message);
+  if (result.success) { showToast('Status premium diperbarui!', 'success'); loadTechnicians(); }
+  else showToast(result.message, 'error');
 }
 
 loadTechnicians();

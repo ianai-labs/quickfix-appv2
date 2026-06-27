@@ -8,28 +8,32 @@
 <script src="/js/main.js"></script>
 <script>
 async function loadDashboard() {
-  const [techsRes, ordersRes] = await Promise.all([fetch('/api/technicians'), fetch('/api/orders?limit=10')]);
+  const [techsRes, ordersRes, txnData] = await Promise.all([
+    fetch('/api/technicians'), fetch('/api/orders?limit=10'),
+    (async () => { const all = await fetch('/api/orders?limit=200'); const o = (await all.json()).data?.orders||[]; const txns=await Promise.all(o.map(o=>fetch(`/api/payment/status/${o.id}`).then(r=>r.json()).catch(()=>({})))); return txns; })()
+  ]);
   const techs = (await techsRes.json()).data.technicians;
-  const ordersData = (await ordersRes.json()).data;
-  const orders = ordersData.orders || [];
+  const orders = (await ordersRes.json()).data.orders || [];
+  const allTxns = txnData.map(t => t.data?.transaction).filter(Boolean);
 
-  const online = techs.filter(t => t.status === 'online').length;
-  const premium = techs.filter(t => t.is_premium).length;
+  const totalRevenue = allTxns.filter(t=>t.status==='paid'||t.status==='released').reduce((s,t)=>s+Number(t.amount),0);
+  const totalCommission = allTxns.filter(t=>t.status==='paid'||t.status==='released').reduce((s,t)=>s+Number(t.commission),0);
+  const online = techs.filter(t=>t.status==='online').length;
+  const premium = techs.filter(t=>t.is_premium).length;
 
   document.getElementById('statsCards').innerHTML = [
-    { label: 'Teknisi', value: techs.length, icon: '👨‍🔧', color: 'var(--info)' },
-    { label: 'Online', value: online, icon: '🟢', color: 'var(--success)' },
-    { label: 'Premium', value: premium, icon: '🔥', color: 'var(--primary)' },
-    { label: 'Total Orders', value: ordersData.pagination?.total_items || 0, icon: '📋', color: 'var(--warning)' },
-  ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" style="color:${s.color}">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
+    { label:'Teknisi', value:techs.length, icon:'👨‍🔧', color:'var(--info)' },
+    { label:'Online', value:online, icon:'🟢', color:'var(--success)' },
+    { label:'Premium', value:premium, icon:'🔥', color:'var(--primary)' },
+    { label:'Total Orders', value:ordersRes.json ? (await (await fetch('/api/orders?limit=1')).json()).data?.pagination?.total_items||0 : 0, icon:'📋', color:'var(--warning)' },
+    { label:'Revenue', value:formatIDR(totalRevenue), icon:'💰', color:'var(--success)', isFormatted:true },
+    { label:'Komisi', value:formatIDR(totalCommission), icon:'📊', color:'var(--danger)', isFormatted:true },
+  ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" ${!s.isFormatted?`style="color:${s.color}"`:''}>${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
 
   document.getElementById('recentOrders').innerHTML = orders.length ? `
     <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Teknisi</th><th>Status</th><th>Tgl</th></tr></thead>
-    <tbody>${orders.map(o => `<tr>
-      <td>#${o.id}</td><td>${o.layanan}</td><td>${o.customer?.nama || '-'}</td>
-      <td>${o.technician?.nama || '-'}</td><td>${statusBadge(o.status)}</td>
-      <td>${formatDate(o.created_at)}</td>
-    </tr>`).join('')}</tbody></table></div>` : '<div class="empty-state"><div class="empty-icon">📋</div><h3>Belum ada order</h3></div>';
+    <tbody>${orders.map(o => `<tr><td>#${o.id}</td><td>${o.layanan}</td><td>${o.customer?.nama||'-'}</td><td>${o.technician?.nama||'-'}</td><td>${statusBadge(o.status)}</td><td>${formatDate(o.created_at)}</td></tr>`).join('')}</tbody></table></div>`
+    : '<div class="empty-state"><div class="empty-icon">📋</div><h3>Belum ada order</h3></div>';
 }
 
 loadDashboard();

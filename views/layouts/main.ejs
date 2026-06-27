@@ -18,11 +18,7 @@
 
   <nav class="sidebar-nav">
     <% if (locals.user) { %>
-      <% if (user.role === 'customer') { %>
-        <div class="sidebar-section">Menu</div>
-        <a href="/customer/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Dashboard</a>
-        <a href="/customer/orders/new" class="sidebar-link <%= active === 'new-order' ? 'active' : '' %>">➕ Buat Order</a>
-      <% } else if (user.role === 'technician') { %>
+      <% if (user.role === 'technician') { %>
         <div class="sidebar-section">Menu</div>
         <a href="/technician/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Job Queue</a>
         <a href="/technician/profile" class="sidebar-link <%= active === 'profile' ? 'active' : '' %>">👤 Profil Saya</a>

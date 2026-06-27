@@ -1,34 +1,31 @@
 <div class="card">
   <div class="card-header"><h2>Daftar User</h2></div>
-
-  <div id="userList"><p style="text-align:center;padding:2rem;color:#888;">Memuat...</p></div>
+  <div id="userList"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
 </div>
 
 <script src="/js/main.js"></script>
 <script>
 async function loadUsers() {
-  // Since there's no dedicated admin users endpoint, we fetch from available sources
-  const [techRes, ordersRes] = await Promise.all([
-    fetch('/api/technicians'),
-    fetch('/api/orders?limit=1'),
-  ]);
-
-  const techsData = await techRes.json();
-  const techs = techsData.data.technicians;
+  const res = await fetch('/api/admin/users');
+  const data = await res.json();
+  if (!data.success) return;
+  const users = data.data.users;
+  const roleIcons = { customer:'👤', technician:'👨‍🔧', admin:'👑' };
+  const roleLabels = { customer:'Pencari Jasa', technician:'Penyedia Jasa', admin:'Admin' };
+  const roleClasses = { customer:'badge-assigned', technician:'badge-otw', admin:'badge-done' };
 
   document.getElementById('userList').innerHTML = `
-    <table class="table">
-      <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Detail</th></tr></thead>
-      <tbody>${techs.map(t => `
-        <tr>
-          <td>${t.nama}</td>
-          <td>${t.email}</td>
-          <td><span class="badge" style="background:#17a2b8;color:#fff;padding:2px 8px;border-radius:4px;">technician</span></td>
-          <td>&#x2B50; ${t.rating} | ${t.is_premium ? 'Premium' : 'Regular'} | ${t.total_jobs} jobs</td>
-        </tr>
-      `).join('')}</tbody>
-    </table>
-  `;
+    <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Detail</th><th>Status</th><th>Bergabung</th></tr></thead>
+    <tbody>${users.map(u => `
+      <tr>
+        <td>#${u.id}</td><td><strong>${u.username}</strong></td><td>${u.email}</td>
+        <td><span class="badge ${roleClasses[u.role]||'badge-pending'}">${roleIcons[u.role]||''} ${roleLabels[u.role]||u.role}</span></td>
+        <td>${u.Technician ? `⭐${u.Technician.rating} · ${u.Technician.total_jobs} jobs` : u.Customer?.no_hp ? `📱 ${u.Customer.no_hp}` : '-'}</td>
+        <td>${u.is_active ? '✅ Aktif' : '❌ Nonaktif'}</td>
+        <td>${formatDate(u.created_at)}</td>
+      </tr>
+    `).join('')}</tbody></table></div>
+    <p style="text-align:center;color:var(--gray-500);margin-top:8px">Total: ${users.length} users</p>`;
 }
 
 loadUsers();
