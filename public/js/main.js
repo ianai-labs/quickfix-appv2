@@ -54,6 +54,12 @@ function statusBadge(status) {
   return `<span class="badge ${map[status] || 'badge-pending'}">${labels[status] || status}</span>`;
 }
 
+// ── XSS Sanitizer ──
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // ── Password Toggle ──
 function setupPasswordToggles() {
   document.querySelectorAll('.pw-toggle').forEach(btn => {
