@@ -21,6 +21,7 @@
       <% if (user.role === 'technician') { %>
         <div class="sidebar-section">Menu</div>
         <a href="/technician/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Job Queue</a>
+        <a href="/technician/history" class="sidebar-link <%= active === 'history' ? 'active' : '' %>">📜 Riwayat</a>
         <a href="/technician/profile" class="sidebar-link <%= active === 'profile' ? 'active' : '' %>">👤 Profil Saya</a>
       <% } else if (user.role === 'customer') { %>
         <div class="sidebar-section">Menu</div>

@@ -75,6 +75,10 @@ module.exports = function viewRoutes() {
     res.render('technician/profile', { title: 'Profil Teknisi — Quickfix', user: req.user, active: 'profile', message: null });
   });
 
+  router.get('/technician/history', requireAuth, requireRole('technician'), (req, res) => {
+    res.render('technician/history', { title: 'Riwayat Order — Quickfix', user: req.user, active: 'history', message: null });
+  });
+
   router.get('/customer/profile', requireAuth, requireRole('customer'), (req, res) => {
     res.render('customer/profile', { title: 'Profil Saya — Quickfix', user: req.user, active: 'profile', message: null });
   });

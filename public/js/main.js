@@ -60,6 +60,20 @@ function esc(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+// ── Pagination ──
+function renderPagination(pagination, loadFn) {
+  if (!pagination || pagination.total_pages <= 1) return '';
+  const { page, total_pages } = pagination;
+  let html = '<div class="pagination" style="display:flex;justify-content:center;gap:4px;margin-top:1rem;flex-wrap:wrap">';
+  if (page > 1) html += `<button class="btn btn-sm btn-outline" onclick="${loadFn}(${page-1})">← Prev</button>`;
+  for (let i = Math.max(1,page-2); i <= Math.min(total_pages,page+2); i++) {
+    html += `<button class="btn btn-sm ${i===page?'btn-primary':'btn-outline'}" onclick="${loadFn}(${i})">${i}</button>`;
+  }
+  if (page < total_pages) html += `<button class="btn btn-sm btn-outline" onclick="${loadFn}(${page+1})">Next →</button>`;
+  html += '</div>';
+  return html;
+}
+
 // ── Password Toggle ──
 function setupPasswordToggles() {
   document.querySelectorAll('.pw-toggle').forEach(btn => {

@@ -13,9 +13,10 @@
 
 <script src="/js/main.js"></script>
 <script>
-async function loadOrders() {
+async function loadOrders(page = 1) {
   const status = document.getElementById('statusFilter').value;
-  const url = status ? `/api/orders?status=${status}&limit=50` : '/api/orders?limit=50';
+  const params = new URLSearchParams({ page, limit: 15 }); if (status) params.set('status', status);
+  const url = `/api/orders?${params}`;
   const res = await fetch(url); const data = await res.json();
   if (!data.success) return;
   const orders = data.data.orders;
@@ -44,6 +45,7 @@ async function loadOrders() {
         </td>
       </tr>`;
     }).join('')}</tbody></table></div>
+    ${renderPagination(data.data.pagination, 'loadOrders')}
     <p style="text-align:center;color:var(--gray-500);margin-top:8px">Total: ${data.data.pagination.total_items} orders</p>`;
 }
 

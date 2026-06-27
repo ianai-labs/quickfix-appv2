@@ -1,0 +1,38 @@
+<div class="card">
+  <div class="card-header"><h2>Riwayat Order</h2></div>
+  <div class="toolbar">
+    <select id="statusFilter" class="form-control" style="width:auto" onchange="loadHistory()">
+      <option value="">Semua</option><option value="done">Selesai</option><option value="cancelled">Batal</option>
+    </select>
+  </div>
+  <div id="historyList"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadHistory(page = 1) {
+  const status = document.getElementById('statusFilter').value;
+  const params = new URLSearchParams({ page, limit: 10 }); if (status) params.set('status', status);
+  const res = await fetch(`/api/orders?${params}`); const data = await res.json();
+  if (!data.success) return;
+  const orders = data.data.orders;
+  const pag = data.data.pagination;
+
+  if (!orders.length) {
+    document.getElementById('historyList').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>Belum ada riwayat order</h3></div>';
+    return;
+  }
+
+  document.getElementById('historyList').innerHTML = `
+    <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Status</th><th>Tgl Selesai</th><th>Harga</th></tr></thead>
+    <tbody>${orders.map(o => `<tr>
+      <td><strong>#${o.id}</strong></td><td>${o.layanan}</td><td>${esc(o.customer?.nama)||'-'}</td>
+      <td>${statusBadge(o.status)}</td><td>${formatDate(o.updated_at)}</td>
+      <td>${o.harga ? formatIDR(o.harga) : '-'}</td>
+    </tr>`).join('')}</tbody></table></div>
+    ${renderPagination(pag, 'loadHistory')}
+    <p style="text-align:center;color:var(--gray-500);margin-top:8px">Total: ${pag.total_items} order</p>`;
+}
+
+loadHistory();
+</script>

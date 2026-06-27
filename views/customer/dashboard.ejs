@@ -16,42 +16,40 @@
 
 <script src="/js/main.js"></script>
 <script>
-async function loadOrders() {
-  const status = document.getElementById('statusFilter').value;
-  const url = status ? `/api/orders?status=${status}` : '/api/orders';
-  const res = await fetch(url); const data = await res.json();
+let currentPage = 1, currentStatus = '';
+
+async function loadOrders(page = 1) {
+  currentPage = page; const status = document.getElementById('statusFilter').value; currentStatus = status;
+  const params = new URLSearchParams({ page, limit: 10 }); if (status) params.set('status', status);
+  const res = await fetch(`/api/orders?${params}`); const data = await res.json();
   if (!data.success) return;
   const orders = data.data.orders;
+  const pag = data.data.pagination;
 
-  // Load payment statuses
-  const txns = await Promise.all(orders.map(o => fetch(`/api/payment/status/${o.id}`).then(r => r.json()).catch(() => ({}))));
-
-  if (!orders.length) {
+  if (!orders.length && page === 1) {
     document.getElementById('statsCards').innerHTML = '';
     document.getElementById('orderList').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>Belum ada order</h3><p>Buat order perbaikan pertama Anda</p><a href="/customer/orders/new" class="btn btn-primary">+ Buat Order</a></div>';
     return;
   }
 
-  const counts = {}; orders.forEach(o => counts[o.status] = (counts[o.status]||0)+1);
+  // Stats from total
+  const allRes = await fetch('/api/orders?limit=200'); const allData = await allRes.json();
+  const allOrders = allData.data?.orders || [];
+  const counts = {}; allOrders.forEach(o => counts[o.status] = (counts[o.status]||0)+1);
   document.getElementById('statsCards').innerHTML = [
-    { label:'Total', value:orders.length, icon:'📋', color:'var(--info)' },
+    { label:'Total', value:pag.total_items, icon:'📋', color:'var(--info)' },
     { label:'Aktif', value:(counts.assigned||0)+(counts.on_the_way||0)+(counts.in_progress||0), icon:'🔧', color:'var(--primary)' },
     { label:'Selesai', value:counts.done||0, icon:'✅', color:'var(--success)' },
   ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" style="color:${s.color}">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
 
+  const txns = await Promise.all(orders.map(o => fetch(`/api/payment/status/${o.id}`).then(r => r.json()).catch(() => ({}))));
   document.getElementById('orderList').innerHTML = `
     <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Teknisi</th><th>Status</th><th>Pembayaran</th><th>Tgl</th><th></th></tr></thead>
     <tbody>${orders.map((o,i) => {
       const txn = txns[i]?.data?.transaction;
-      return `<tr>
-        <td><strong>#${o.id}</strong></td><td>${o.layanan}</td>
-        <td>${o.technician ? o.technician.nama : '<span style="color:var(--gray-300)">Menunggu</span>'}</td>
-        <td>${statusBadge(o.status)}</td>
-        <td>${txn ? statusBadge(txn.status) + (txn.amount ? ' '+formatIDR(txn.amount) : '') : '<span class="badge badge-pending">-</span>'}</td>
-        <td>${formatDate(o.created_at)}</td>
-        <td><a href="/customer/orders/${o.id}" class="btn btn-sm btn-outline">Detail</a></td>
-      </tr>`;
-    }).join('')}</tbody></table></div>`;
+      return `<tr><td><strong>#${o.id}</strong></td><td>${o.layanan}</td><td>${o.technician ? esc(o.technician.nama) : '<span style="color:var(--gray-300)">Menunggu</span>'}</td><td>${statusBadge(o.status)}</td><td>${txn ? statusBadge(txn.status) + (txn.amount ? ' '+formatIDR(txn.amount) : '') : '<span class="badge badge-pending">-</span>'}</td><td>${formatDate(o.created_at)}</td><td><a href="/customer/orders/${o.id}" class="btn btn-sm btn-outline">Detail</a></td></tr>`;
+    }).join('')}</tbody></table></div>
+    ${renderPagination(pag, 'loadOrders')}`;
 }
 
 loadOrders();
