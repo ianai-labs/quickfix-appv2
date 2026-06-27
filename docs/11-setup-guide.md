@@ -117,7 +117,7 @@ quickfix_app         Up X minutes
 | Service | URL | Kegunaan |
 |---------|-----|----------|
 | **Aplikasi** | http://localhost:3000 | Web utama |
-| **phpMyAdmin** | http://localhost:8080 | Manajemen database |
+| **phpMyAdmin** | http://localhost:8081 | Manajemen database |
 | **Health Check** | http://localhost:3000/health | Cek status server |
 
 ### 3. Login
@@ -242,7 +242,7 @@ docker compose up -d --build
 |:----:|---------|------------|
 | 3000 | Express App | Aplikasi web |
 | 3307 | MySQL | Database (di-mapping dari 3306 container) |
-| 8080 | phpMyAdmin | Database GUI |
+| 8081 | phpMyAdmin | Database GUI |
 
 > MySQL menggunakan port **3307** (bukan 3306) untuk menghindari konflik dengan MySQL lokal.
 

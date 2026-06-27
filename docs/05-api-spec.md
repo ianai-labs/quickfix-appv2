@@ -388,3 +388,77 @@ Upload foto ke Cloudinary.
 | 404 | Not Found — data tidak ditemukan |
 | 429 | Too Many Requests — rate limit tercapai |
 | 500 | Internal Server Error |
+
+---
+
+## 6. Payment Module — `/api/payment`
+
+### `POST /api/payment/checkout/:id` 🔒
+Initiate payment for an order. Returns Midtrans Snap token.
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": {
+    "transaction_id": 1,
+    "snap_token": "abc123...",
+    "amount": 250000,
+    "commission": 37500,
+    "net_amount": 212500
+  }
+}
+```
+
+### `GET /api/payment/status/:id` 🔒
+Get transaction status for an order.
+
+### `POST /api/payment/release/:id` 🔒 Admin
+Release escrow payment to technician.
+
+### `POST /api/payment/webhook`
+Midtrans payment notification callback.
+
+---
+
+## 7. Reviews Module — `/api/reviews`
+
+### `POST /api/reviews` 🔒
+Create a two-way review (customer↔technician). Requires order in `done` status.
+
+**Body:** `{ "order_id": 1, "rating": 5, "comment": "Bagus!" }`
+
+### `GET /api/reviews/order/:id` 🔒
+List all reviews for an order.
+
+---
+
+## 8. Admin Module — `/api/admin`
+
+### `GET /api/admin/users` 🔒 Admin
+List all customers.
+
+### `PUT /api/admin/users/:id/toggle` 🔒 Admin
+Activate/deactivate a user account.
+
+### `GET /api/admin/stats` 🔒 Admin
+Aggregated statistics: order counts by status, transaction totals, technician counts.
+
+### `GET /api/admin/pricing` Public
+List service pricing (public for create-order page).
+
+### `PUT /api/admin/pricing/:id` 🔒 Admin
+Update service price or commission rate.
+
+---
+
+## 9. Profile Module
+
+### `PUT /api/auth/profile` 🔒
+Update customer profile (no_hp, alamat).
+
+### `PUT /api/auth/change-password` 🔒
+Change password (requires current password).
+
+### `POST /api/auth/refresh`
+Refresh expired access token using refresh token cookie.
