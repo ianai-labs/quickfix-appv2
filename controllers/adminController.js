@@ -24,10 +24,10 @@ async function updatePricing(req, res, next) {
 async function listUsers(req, res, next) {
   try {
     const users = await User.findAll({
+      where: { role: 'customer' },
       attributes: ['id', 'username', 'email', 'role', 'is_active', 'created_at'],
       include: [
-        { model: Technician, attributes: ['spesialisasi', 'rating', 'total_jobs'], required: false },
-        { model: Customer, attributes: ['no_hp'], required: false },
+        { model: Customer, attributes: ['no_hp', 'alamat'], required: false },
       ],
       order: [['created_at', 'DESC']],
     });
