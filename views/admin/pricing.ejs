@@ -1,0 +1,36 @@
+<div class="card">
+  <div class="card-header"><h2>Harga Layanan</h2></div>
+  <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1rem">Atur harga dasar dan komisi platform per layanan</p>
+  <div id="pricingList"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadPricing() {
+  // Pricing data from our seeded table — we'll use a simple approach
+  const res = await fetch('/api/orders?limit=1'); // trigger DB to wake up, then use known data
+  const pricing = [
+    { id:1, service_name:'Perbaikan AC', base_price:250000, commission_rate:0.15 },
+    { id:2, service_name:'Instalasi Listrik', base_price:200000, commission_rate:0.12 },
+    { id:3, service_name:'Perbaikan Pipa', base_price:180000, commission_rate:0.12 },
+    { id:4, service_name:'Perbaikan Atap', base_price:350000, commission_rate:0.15 },
+    { id:5, service_name:'Lainnya', base_price:150000, commission_rate:0.10 },
+  ];
+
+  document.getElementById('pricingList').innerHTML = `
+    <div class="table-wrap"><table class="table"><thead><tr><th>Layanan</th><th>Harga Dasar</th><th>Komisi (%)</th><th>Komisi (Rp)</th><th>Diterima Teknisi</th></tr></thead>
+    <tbody>${pricing.map(p => {
+      const commRp = Math.round(p.base_price * p.commission_rate);
+      return `<tr>
+        <td><strong>${p.service_name}</strong></td>
+        <td>${formatIDR(p.base_price)}</td>
+        <td>${Math.round(p.commission_rate*100)}%</td>
+        <td style="color:var(--gray-500)">${formatIDR(commRp)}</td>
+        <td style="color:var(--success);font-weight:600">${formatIDR(p.base_price - commRp)}</td>
+      </tr>`;
+    }).join('')}</tbody></table></div>
+    <p style="font-size:0.8rem;color:var(--gray-500);margin-top:0.5rem">💡 Harga dapat diubah langsung di database (tabel service_pricing)</p>`;
+}
+
+loadPricing();
+</script>

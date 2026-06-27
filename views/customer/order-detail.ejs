@@ -1,70 +1,191 @@
 <div id="orderDetail"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
 
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-dummy"></script>
 <script src="/js/main.js"></script>
 <script>
 const orderId = window.location.pathname.split('/').pop();
 
 async function loadOrder() {
-  const res = await fetch(`/api/orders/${orderId}`);
-  const result = await res.json();
-  if (!result.success) { document.getElementById('orderDetail').innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><h3>${result.message}</h3></div>`; return; }
+  const [orderRes, txnRes, reviewRes] = await Promise.all([
+    fetch(`/api/orders/${orderId}`),
+    fetch(`/api/payment/status/${orderId}`),
+    fetch(`/api/reviews/order/${orderId}`),
+  ]);
+  const o = (await orderRes.json()).data?.order;
+  const txn = (await txnRes.json()).data?.transaction;
+  const reviews = (await reviewRes.json()).data?.reviews || [];
+  if (!o) { document.getElementById('orderDetail').innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>Order tidak ditemukan</h3></div>'; return; }
 
-  const o = result.data.order;
-  const steps = ['pending', 'assigned', 'on_the_way', 'in_progress', 'done'];
-  const labels = { pending: 'Pending', assigned: 'Assigned', on_the_way: 'OTW', in_progress: 'Progress', done: 'Selesai' };
+  const steps = ['pending','assigned','on_the_way','in_progress','done'];
+  const labels = { pending:'Pending', assigned:'Assigned', on_the_way:'OTW', in_progress:'Progress', done:'Selesai' };
   const idx = steps.indexOf(o.status);
 
+  render(o, txn, reviews, steps, labels, idx);
+}
+
+function render(o, txn, reviews, steps, labels, idx) {
+  const amount = txn ? Number(txn.amount) : 0;
+  const paid = txn?.status === 'paid' || txn?.status === 'released';
+  const released = txn?.status === 'released';
+
   document.getElementById('orderDetail').innerHTML = `
-    <a href="/customer/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem">← Kembali</a>
+    <a href="/customer/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem;color:var(--gray-500)">← Kembali ke Dashboard</a>
 
     <div class="card">
       <div class="card-header"><h2>Order #${o.id} — ${o.layanan}</h2>${statusBadge(o.status)}</div>
 
-      <div class="stepper">${steps.map((s, i) => `<div class="stepper-step ${i < idx ? 'done' : i === idx ? 'active' : ''}">${labels[s]}</div>`).join('')}</div>
+      <div class="stepper">${steps.map((s,i) => `<div class="stepper-step ${i<idx?'done':i===idx?'active':''}">${labels[s]}</div>`).join('')}</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.25rem 0">
         <div><label style="font-size:0.8rem;color:var(--gray-500)">Layanan</label><p style="font-weight:600">${o.layanan}</p></div>
         <div><label style="font-size:0.8rem;color:var(--gray-500)">Tanggal</label><p style="font-weight:600">${formatDate(o.created_at)}</p></div>
-        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi || '-'}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi||'-'}</p></div>
         <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Alamat</label><p style="font-weight:600">${o.alamat}</p></div>
         ${o.harga ? `<div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Harga</label><p style="font-weight:700;font-size:1.1rem;color:var(--success)">${formatIDR(o.harga)}</p></div>` : ''}
       </div>
 
+      <!-- Payment Section -->
+      <div class="card" style="background:var(--gray-100);margin-bottom:1rem">
+        <h3>💰 Pembayaran</h3>
+        ${txn ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.75rem">
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Status</label><p>${statusBadge(txn.status)}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Total</label><p style="font-weight:700;font-size:1rem">${formatIDR(txn.amount)}</p></div>
+            ${paid ? `<div><label style="font-size:0.75rem;color:var(--gray-500)">Komisi Platform</label><p style="color:var(--gray-500)">${formatIDR(txn.commission)} (${Math.round(Number(txn.commission)/Number(txn.amount)*100)}%)</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Diterima Teknisi</label><p style="font-weight:600;color:var(--success)">${formatIDR(txn.net_amount)}</p></div>` : ''}
+            ${txn.payment_method ? `<div style="grid-column:span 2"><label style="font-size:0.75rem;color:var(--gray-500)">Metode</label><p>${txn.payment_method}</p></div>` : ''}
+          </div>
+        ` : '<p style="color:var(--gray-500);margin-top:0.5rem">Belum ada transaksi</p>'}
+
+        ${!paid && o.status !== 'cancelled' ? `
+          <button class="btn btn-primary" style="margin-top:0.75rem" onclick="payNow(${o.id})" id="payBtn">💰 Bayar Sekarang</button>
+          <p style="font-size:0.75rem;color:var(--gray-500);margin-top:4px">Pembayaran diamankan dengan escrow. Dana dilepas ke teknisi setelah pekerjaan selesai.</p>
+        ` : ''}
+
+        ${released ? '<p style="color:var(--success);font-weight:600;margin-top:0.5rem">✅ Dana telah dilepas ke teknisi</p>' : ''}
+        ${paid && !released && o.status === 'done' ? `
+          <button class="btn btn-success" style="margin-top:0.75rem" onclick="releaseFunds(${o.id})">✅ Konfirmasi Selesai & Lepas Dana</button>
+        ` : ''}
+      </div>
+
+      <!-- Technician Card -->
       ${o.technician ? `
         <div class="card" style="background:var(--gray-100)">
           <h3 style="display:flex;align-items:center;gap:8px"><span class="nav-avatar technician" style="display:inline-flex">${(o.technician.nama||'?').charAt(0)}</span> ${o.technician.nama} ${o.technician.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : ''}</h3>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.75rem">
-            <div><label style="font-size:0.75rem;color:var(--gray-500)">Spesialisasi</label><p style="font-size:0.9rem">${o.technician.spesialisasi}</p></div>
-            <div><label style="font-size:0.75rem;color:var(--gray-500)">Rating</label><p style="font-size:0.9rem">⭐ ${o.technician.rating}</p></div>
-            <div><label style="font-size:0.75rem;color:var(--gray-500)">No HP</label><p style="font-size:0.9rem">${o.technician.no_hp || '-'}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Spesialisasi</label><p>${o.technician.spesialisasi}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Rating</label><p>⭐ ${o.technician.rating}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">No HP</label><p>${o.technician.no_hp||'-'}</p></div>
           </div>
         </div>
-      ` : '<p style="color:var(--gray-500);text-align:center;padding:1rem">Menunggu teknisi tersedia...</p>'}
+      ` : '<p style="text-align:center;color:var(--gray-500);padding:1rem">Menunggu teknisi tersedia...</p>'}
 
+      <!-- OTP Verification (when on_the_way) -->
       ${o.status === 'on_the_way' ? `
         <div class="card" style="border:2px solid var(--primary);margin-top:1rem">
           <h3>🔐 Verifikasi Teknisi</h3>
           <p style="color:var(--gray-500);font-size:0.85rem;margin:0.5rem 0">Masukkan kode OTP dari email saat teknisi tiba:</p>
-          <div style="display:flex;gap:8px"><input type="text" id="otpInput" class="form-control" placeholder="6 digit OTP" maxlength="6"><button class="btn btn-primary btn-sm" onclick="verifyOTP()">Verifikasi</button></div>
+          <div style="display:flex;gap:8px"><input type="text" id="otpInput" class="form-control" placeholder="6 digit OTP" maxlength="6"><button class="btn btn-primary btn-sm" onclick="verifyOTP(${o.id})">Verifikasi</button></div>
         </div>` : ''}
 
+      <!-- Photo Gallery -->
       ${o.photos.length ? `
         <div style="margin-top:1rem"><h3 style="margin-bottom:0.75rem">📸 Foto Pekerjaan</h3>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem">${o.photos.map(p => `
-          <div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" alt="${p.description||''}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>
+          <div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>
         `).join('')}</div></div>` : ''}
+
+      <!-- Reviews Section -->
+      <div style="margin-top:1.5rem">
+        <h3 style="margin-bottom:0.75rem">⭐ Ulasan</h3>
+        ${reviews.length ? reviews.map(r => `
+          <div class="card" style="padding:1rem;margin-bottom:0.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${r.reviewer?.username||'?'}</strong>
+              <span style="color:var(--primary)">${'⭐'.repeat(r.rating)}</span>
+            </div>
+            <p style="font-size:0.85rem;color:var(--gray-700);margin-top:4px">${r.comment||''}</p>
+          </div>
+        `).join('') : '<p style="color:var(--gray-500);font-size:0.85rem">Belum ada ulasan</p>'}
+
+        ${o.status === 'done' ? `
+          <div class="card" style="padding:1rem;margin-top:0.75rem" id="reviewForm">
+            <h4 style="margin-bottom:0.5rem">Beri Ulasan</h4>
+            <div style="display:flex;gap:4px;margin-bottom:0.5rem" id="starRating">
+              ${[1,2,3,4,5].map(i => `<button class="star-btn" data-rating="${i}" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray-300)">★</button>`).join('')}
+            </div>
+            <textarea id="reviewComment" class="form-control" rows="2" placeholder="Tulis komentar..."></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="submitReview(${o.id})">Kirim Ulasan</button>
+          </div>
+        ` : ''}
+      </div>
     </div>`;
+
+  // Star rating handler
+  let selectedRating = 0;
+  document.querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRating = parseInt(btn.dataset.rating);
+      document.querySelectorAll('.star-btn').forEach((b,i) => b.style.color = i < selectedRating ? '#f5b800' : 'var(--gray-300)');
+    });
+    btn.addEventListener('mouseenter', () => {
+      const r = parseInt(btn.dataset.rating);
+      document.querySelectorAll('.star-btn').forEach((b,i) => b.style.color = i < r ? '#f5b800' : 'var(--gray-300)');
+    });
+  });
 }
 
-async function verifyOTP() {
+async function payNow(orderId) {
+  const btn = document.getElementById('payBtn'); setLoading(btn, 'Memproses...');
+  const res = await fetch(`/api/payment/checkout/${orderId}`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success && data.data.snap_token) {
+    window.snap.pay(data.data.snap_token, {
+      onSuccess: () => { showToast('Pembayaran berhasil!', 'success'); setTimeout(loadOrder, 1000); },
+      onPending: () => showToast('Menunggu pembayaran...', 'info'),
+      onError: () => showToast('Pembayaran gagal', 'error'),
+    });
+  } else if (data.success && data.data.midtrans_error) {
+    // Demo mode: simulate payment
+    if (confirm('Demo Mode: Midtrans key belum dikonfigurasi.\nSimulasikan pembayaran sukses?')) {
+      await fetch('/api/payment/webhook', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: `QF-${orderId}-${Date.now()}`, transaction_status: 'settlement', payment_type: 'demo' })
+      });
+      showToast('Pembayaran (demo) berhasil!', 'success'); loadOrder();
+    }
+  } else {
+    showToast(data.message || 'Gagal memproses pembayaran', 'error');
+  }
+  resetLoading(btn);
+}
+
+async function releaseFunds(orderId) {
+  if (!confirm('Lepaskan dana ke teknisi? Tindakan ini tidak dapat dibatalkan.')) return;
+  const res = await fetch(`/api/payment/release/${orderId}`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) { showToast('Dana berhasil dilepas ke teknisi!', 'success'); loadOrder(); }
+  else showToast(data.message, 'error');
+}
+
+async function verifyOTP(orderId) {
   const code = document.getElementById('otpInput').value.trim();
   if (code.length !== 6) { showToast('Masukkan 6 digit OTP', 'error'); return; }
   const res = await api('/api/otp/verify', { method: 'POST', body: JSON.stringify({ token: getCookie('token'), code, type: 'order_verify' }) });
   const data = await res.json();
   if (data.success) {
-    await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status: 'in_progress' }) });
+    await fetch(`/api/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'in_progress' }) });
     showToast('Verifikasi berhasil!', 'success'); loadOrder();
   } else showToast(data.message, 'error');
+}
+
+async function submitReview(orderId) {
+  if (!selectedRating) { showToast('Pilih rating bintang', 'error'); return; }
+  const comment = document.getElementById('reviewComment').value.trim();
+  const res = await api('/api/reviews', { method: 'POST', body: JSON.stringify({ order_id: orderId, rating: selectedRating, comment }) });
+  const data = await res.json();
+  if (data.success) { showToast('Ulasan terkirim! ⭐', 'success'); loadOrder(); }
+  else showToast(data.message, 'error');
 }
 
 loadOrder();

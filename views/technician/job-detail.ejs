@@ -5,59 +5,118 @@
 const orderId = window.location.pathname.split('/').pop();
 
 async function loadJob() {
-  const res = await fetch(`/api/orders/${orderId}`);
-  const result = await res.json();
-  if (!result.success) { document.getElementById('jobDetail').innerHTML = `<div class="empty-state"><h3>${result.message}</h3></div>`; return; }
-  const o = result.data.order;
+  const [orderRes, reviewRes] = await Promise.all([
+    fetch(`/api/orders/${orderId}`),
+    fetch(`/api/reviews/order/${orderId}`),
+  ]);
+  const o = (await orderRes.json()).data?.order;
+  const reviews = (await reviewRes.json()).data?.reviews || [];
+  if (!o) { document.getElementById('jobDetail').innerHTML = '<div class="empty-state"><h3>Order tidak ditemukan</h3></div>'; return; }
 
   const actions = [];
-  if (o.status === 'assigned') actions.push({ label: 'On The Way', status: 'on_the_way', cls: 'btn-warning', style: 'background:var(--warning);color:#fff' });
+  if (o.status === 'assigned') {
+    actions.push({ label: '🚗 On The Way', status: 'on_the_way', cls: 'btn-warning', style: 'background:var(--warning);color:#fff' });
+  }
+  if (o.status === 'on_the_way') {
+    actions.push({ label: '🔧 Mulai Pekerjaan', status: 'in_progress', cls: 'btn-info' });
+  }
   if (['on_the_way','in_progress'].includes(o.status)) {
-    if (o.status === 'on_the_way') actions.push({ label: 'Mulai Pekerjaan', status: 'in_progress', cls: 'btn-info' });
-    actions.push({ label: 'Selesai', status: 'done', cls: 'btn-success' });
+    actions.push({ label: '✅ Selesai', status: 'done', cls: 'btn-success' });
   }
 
+  render(o, reviews, actions);
+}
+
+function render(o, reviews, actions) {
   document.getElementById('jobDetail').innerHTML = `
-    <a href="/technician/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem">← Kembali</a>
+    <a href="/technician/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem;color:var(--gray-500)">← Kembali ke Job Queue</a>
 
     <div class="card">
       <div class="card-header"><h2>Job #${o.id} — ${o.layanan}</h2>${statusBadge(o.status)}</div>
 
+      <!-- Customer info -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0">
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">Customer</label><p style="font-weight:600">${o.customer?.nama || '-'}</p></div>
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">No HP</label><p style="font-weight:600">${o.customer?.no_hp || '-'}</p></div>
-        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi || '-'}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Customer</label><p style="font-weight:600">${o.customer?.nama||'-'}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">No HP</label><p style="font-weight:600">${o.customer?.no_hp||'-'}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi||'-'}</p></div>
         <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Alamat</label><p style="font-weight:600">${o.alamat}</p></div>
+        ${o.harga ? `<div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Harga</label><p style="font-weight:700;font-size:1.1rem;color:var(--success)">${formatIDR(o.harga)}</p></div>` : ''}
       </div>
 
-      ${actions.length ? `<div style="display:flex;gap:8px;margin-bottom:1rem">${actions.map(a => `<button class="btn btn-sm ${a.cls}" onclick="updateStatus('${a.status}')" style="${a.style||''}">${a.label}</button>`).join('')}</div>` : o.status === 'done' ? '<p style="text-align:center;color:var(--success);font-weight:600;padding:1rem">✅ Pekerjaan Selesai</p>' : ''}
+      <!-- Status Actions -->
+      ${actions.length ? `
+        <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+          ${actions.map(a => `<button class="btn btn-sm ${a.cls}" onclick="updateStatus('${a.status}')" style="${a.style||''}">${a.label}</button>`).join('')}
+        </div>
+      ` : o.status === 'done' ? '<p style="text-align:center;color:var(--success);font-weight:600;padding:1rem">✅ Pekerjaan Selesai</p>' : ''}
 
-      ${o.status !== 'done' ? `
-        <div class="card" style="background:var(--gray-100)">
+      ${o.status !== 'done' && o.status !== 'cancelled' ? `
+        <div class="card" style="background:var(--gray-100);margin-bottom:1rem">
           <h3>📸 Upload Foto</h3>
           <form id="uploadForm" enctype="multipart/form-data" style="margin-top:0.75rem">
             <div class="form-group"><input type="file" name="photo" accept="image/*" required></div>
-            <div class="form-group"><input type="text" name="description" class="form-control" placeholder="Keterangan foto (contoh: Sebelum perbaikan)"></div>
+            <div class="form-group"><input type="text" name="description" class="form-control" placeholder="Keterangan (contoh: Sebelum perbaikan)"></div>
             <button type="submit" class="btn btn-primary btn-sm">Upload</button>
           </form>
         </div>` : ''}
 
-      ${o.photos.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;margin-top:1rem">${o.photos.map(p => `<div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" alt="${p.description||''}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>`).join('')}</div>` : ''}
+      <!-- Photos -->
+      ${o.photos.length ? `
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;margin-bottom:1rem">
+          ${o.photos.map(p => `<div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>`).join('')}
+        </div>` : ''}
+
+      <!-- Reviews -->
+      <div style="margin-top:1rem">
+        <h3>⭐ Ulasan</h3>
+        ${reviews.length ? reviews.map(r => `
+          <div class="card" style="padding:0.75rem;margin-bottom:0.5rem">
+            <div style="display:flex;justify-content:space-between"><strong>${r.reviewer?.username||'?'}</strong><span style="color:var(--primary)">${'⭐'.repeat(r.rating)}</span></div>
+            <p style="font-size:0.85rem;color:var(--gray-700);margin-top:4px">${r.comment||''}</p>
+          </div>
+        `).join('') : '<p style="color:var(--gray-500);font-size:0.85rem">Belum ada ulasan</p>'}
+
+        ${o.status === 'done' ? `
+          <div class="card" style="padding:1rem;margin-top:0.75rem" id="reviewForm">
+            <h4 style="margin-bottom:0.5rem">Beri Ulasan ke Customer</h4>
+            <div style="display:flex;gap:4px;margin-bottom:0.5rem">${[1,2,3,4,5].map(i => `<button class="star-btn2" data-rating="${i}" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--gray-300)">★</button>`).join('')}</div>
+            <textarea id="reviewComment" class="form-control" rows="2" placeholder="Tulis komentar..."></textarea>
+            <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="submitReview(${o.id})">Kirim Ulasan</button>
+          </div>` : ''}
+      </div>
     </div>`;
 
-  document.getElementById('uploadForm')?.addEventListener('submit', async e => {
+  // Upload form
+  const uf = document.getElementById('uploadForm');
+  if (uf) uf.addEventListener('submit', async e => {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    fd.append('order_id', orderId);
-    const res = await api('/api/upload', { method: 'POST', body: fd });
+    const fd = new FormData(e.target); fd.append('order_id', orderId);
+    const token = getCookie('token');
+    const res = await fetch('/api/upload', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd });
     const data = await res.json();
     if (data.success) { showToast('Foto berhasil diupload!', 'success'); loadJob(); }
     else showToast(data.message, 'error');
   });
+
+  // Star rating
+  let selRating = 0;
+  document.querySelectorAll('.star-btn2').forEach(btn => {
+    btn.addEventListener('click', () => { selRating = parseInt(btn.dataset.rating); document.querySelectorAll('.star-btn2').forEach((b,i) => b.style.color = i < selRating ? '#f5b800' : 'var(--gray-300)'); });
+    btn.addEventListener('mouseenter', () => { const r = parseInt(btn.dataset.rating); document.querySelectorAll('.star-btn2').forEach((b,i) => b.style.color = i < r ? '#f5b800' : 'var(--gray-300)'); });
+  });
+
+  window.submitReview = async function(orderId) {
+    if (!selRating) { showToast('Pilih rating bintang', 'error'); return; }
+    const comment = document.getElementById('reviewComment')?.value?.trim() || '';
+    const res = await api('/api/reviews', { method: 'POST', body: JSON.stringify({ order_id: orderId, rating: selRating, comment }) });
+    const data = await res.json();
+    if (data.success) { showToast('Ulasan terkirim! ⭐', 'success'); loadJob(); }
+    else showToast(data.message, 'error');
+  };
 }
 
 async function updateStatus(status) {
-  if (status === 'done' && !await confirmAction('Selesaikan pekerjaan ini?')) return;
+  if (status === 'done' && !confirm('Selesaikan pekerjaan ini?')) return;
   const res = await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status }) });
   const data = await res.json();
   if (data.success) { showToast(data.message, 'success'); loadJob(); }

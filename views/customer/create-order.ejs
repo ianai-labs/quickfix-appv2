@@ -21,28 +21,35 @@
       <label>Alamat Lengkap</label>
       <textarea name="alamat" class="form-control" rows="2" required placeholder="Jl. ..."></textarea>
     </div>
-    <button type="submit" class="btn btn-primary">Buat Order</button>
-    <a href="/customer/dashboard" class="btn" style="display:block;text-align:center;margin-top:0.5rem;background:#f5f6f8;">Batal</a>
+
+    <div id="priceEstimate" style="background:var(--primary-light);padding:12px;border-radius:var(--radius-sm);margin:1rem 0;display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:0.85rem;color:var(--gray-700)">💰 Estimasi Biaya:</span>
+        <span style="font-weight:700;font-size:1.1rem" id="estPrice">-</span>
+      </div>
+      <p style="font-size:0.7rem;color:var(--gray-500);margin-top:4px">Pembayaran diamankan dengan escrow. Dana dilepas setelah selesai.</p>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="width:100%">Buat Order</button>
+    <a href="/customer/dashboard" class="btn btn-outline" style="display:block;text-align:center;margin-top:0.5rem;">Batal</a>
   </form>
 </div>
 
 <script src="/js/main.js"></script>
 <script>
+const pricing = { 'Perbaikan AC':250000, 'Instalasi Listrik':200000, 'Perbaikan Pipa':180000, 'Perbaikan Atap':350000, 'Lainnya':150000 };
+document.querySelector('[name="layanan"]').addEventListener('change', function(){
+  const p = pricing[this.value]; const el = document.getElementById('priceEstimate');
+  if(p){ el.style.display='block'; document.getElementById('estPrice').textContent = formatIDR(p); }
+  else el.style.display='none';
+});
+
 document.getElementById('orderForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = Object.fromEntries(new FormData(e.target));
-
-  const res = await fetch('/api/orders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-
+  const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   const result = await res.json();
-  if (result.success) {
-    window.location.href = `/customer/orders/${result.data.order.id}`;
-  } else {
-    alert(result.message);
-  }
+  if (result.success) { showToast('Order berhasil!', 'success'); setTimeout(() => window.location.href = '/customer/orders/' + result.data.order.id, 500); }
+  else showToast(result.message, 'error');
 });
 </script>

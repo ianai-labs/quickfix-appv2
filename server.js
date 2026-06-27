@@ -73,6 +73,8 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/technicians', require('./routes/technicianRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/otp', require('./routes/otpRoutes'));
+app.use('/api/payment', require('./routes/paymentRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // ── View Routes ──
 app.use('/', viewRoutes());

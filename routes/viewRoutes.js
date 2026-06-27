@@ -78,5 +78,9 @@ module.exports = function viewRoutes() {
     res.render('admin/users', { title: 'Kelola Users — Quickfix', user: req.user, active: 'users', message: null });
   });
 
+  router.get('/admin/pricing', requireAuth, (req, res) => {
+    res.render('admin/pricing', { title: 'Harga Layanan — Quickfix', user: req.user, active: 'pricing', message: null });
+  });
+
   return router;
 };
