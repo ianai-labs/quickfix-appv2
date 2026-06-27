@@ -62,6 +62,7 @@
     <div class="role-tabs" id="roleTabs">
       <button class="role-tab active" data-role="customer">👤 Pencari Jasa</button>
       <button class="role-tab" data-role="technician">👨‍🔧 Penyedia Jasa</button>
+      <button class="role-tab" data-role="admin">👑 Admin</button>
     </div>
     <p class="role-hint" id="roleHint">Untuk booking & memantau perbaikan</p>
 
@@ -118,12 +119,12 @@ let currentTempToken = null, selectedRole = 'customer';
 document.querySelectorAll('.role-tab').forEach(tab => tab.addEventListener('click', () => {
   document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
   tab.classList.add('active'); selectedRole = tab.dataset.role;
-  document.getElementById('roleHint').textContent = selectedRole === 'customer' ? 'Untuk booking & memantau perbaikan' : 'Untuk menerima & mengerjakan order';
+  document.getElementById('roleHint').textContent = selectedRole === 'customer' ? 'Untuk booking & memantau perbaikan' : selectedRole === 'technician' ? 'Untuk menerima & mengerjakan order' : 'Untuk mengelola platform';
 }));
 
 async function quickLogin(u,p,r) {
   document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-role="${r==='admin'?'technician':r}"]`).classList.add('active');
+  document.querySelector(`[data-role="${r}"]`).classList.add('active');
   selectedRole = r;
   document.querySelector('[name="login"]').value = u;
   document.querySelector('[name="password"]').value = p;
@@ -148,7 +149,7 @@ document.getElementById('loginForm').addEventListener('submit', async e => {
       document.getElementById('otpOverlay').style.display='flex'; document.getElementById('otpInput').focus();
     } else if (result.success) {
       const ur = result.data.user.role;
-      if ((selectedRole==='customer'&&ur!=='customer')||(selectedRole==='technician'&&ur==='customer')) { showToast('Role tidak sesuai. Pilih tab yang benar.','error'); resetLoading(btn); return; }
+      if (selectedRole !== 'admin' && selectedRole !== ur && !(selectedRole === 'technician' && ur === 'admin')) { showToast('Role tidak sesuai. Pilih tab yang benar.','error'); resetLoading(btn); return; }
       window.location.href = {admin:'/admin/dashboard',technician:'/technician/dashboard',customer:'/customer/dashboard'}[ur]||'/';
     } else showToast(result.message,'error');
   } catch(_) { showToast('Gagal terhubung ke server','error'); }
