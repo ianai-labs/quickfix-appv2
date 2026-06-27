@@ -142,3 +142,9 @@ INSERT INTO technicians (user_id, spesialisasi, rating, is_premium, status, no_h
 (4, 'AC,Listrik', 5.0, 1, 'online', '081233334444'),
 (5, 'Pipa,Atap', 4.5, 0, 'online', '081244445555'),
 (6, 'AC,Pipa', 3.0, 0, 'online', '081255556666');
+
+-- Generate transactions for done orders (for demo data)
+INSERT INTO transactions (order_id, amount, commission, net_amount, status, payment_method, paid_at, created_at, updated_at)
+SELECT o.id, COALESCE(o.harga, 200000), ROUND(COALESCE(o.harga, 200000)*0.15), COALESCE(o.harga, 200000)-ROUND(COALESCE(o.harga, 200000)*0.15), 'released', 'demo', o.updated_at, o.created_at, o.updated_at
+FROM orders o LEFT JOIN transactions t ON t.order_id = o.id
+WHERE o.status = 'done' AND t.id IS NULL;
