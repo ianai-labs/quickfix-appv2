@@ -24,11 +24,12 @@ async function loadHistory(page = 1) {
   }
 
   document.getElementById('historyList').innerHTML = `
-    <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Status</th><th>Tgl Selesai</th><th>Harga</th></tr></thead>
+    <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Status</th><th>Tgl Selesai</th><th>Harga</th><th></th></tr></thead>
     <tbody>${orders.map(o => `<tr>
       <td><strong>#${o.id}</strong></td><td>${o.layanan}</td><td>${esc(o.customer?.nama)||'-'}</td>
       <td>${statusBadge(o.status)}</td><td>${formatDate(o.updated_at)}</td>
       <td>${o.harga ? formatIDR(o.harga) : '-'}</td>
+      <td><a href="/technician/jobs/${o.id}" class="btn btn-sm btn-outline">Detail</a></td>
     </tr>`).join('')}</tbody></table></div>
     ${renderPagination(pag, 'loadHistory')}
     <p style="text-align:center;color:var(--gray-500);margin-top:8px">Total: ${pag.total_items} order</p>`;
