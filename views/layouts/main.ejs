@@ -7,14 +7,80 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔧</text></svg>">
 </head>
-<body>
+<body class="sidebar-layout">
 
-<%- include('../partials/navbar') %>
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <a href="/" class="sidebar-logo">🔧 <span>Quickfix</span></a>
+    <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">☰</button>
+  </div>
 
-<div class="main-content">
-  <%- body %>
+  <nav class="sidebar-nav">
+    <% if (locals.user) { %>
+      <% if (user.role === 'customer') { %>
+        <div class="sidebar-section">Menu</div>
+        <a href="/customer/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Dashboard</a>
+        <a href="/customer/orders/new" class="sidebar-link <%= active === 'new-order' ? 'active' : '' %>">➕ Buat Order</a>
+      <% } else if (user.role === 'technician') { %>
+        <div class="sidebar-section">Menu</div>
+        <a href="/technician/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Job Queue</a>
+      <% } else if (user.role === 'admin') { %>
+        <div class="sidebar-section">Menu Utama</div>
+        <a href="/admin/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📊 Dashboard</a>
+        <a href="/admin/orders" class="sidebar-link <%= active === 'orders' ? 'active' : '' %>">📋 Orders</a>
+        <div class="sidebar-section">Kelola</div>
+        <a href="/admin/technicians" class="sidebar-link <%= active === 'technicians' ? 'active' : '' %>">👨‍🔧 Teknisi</a>
+        <a href="/admin/users" class="sidebar-link" <%= active === 'users' ? 'active' : '' %>>👥 Users</a>
+      <% } %>
+    <% } %>
+  </nav>
+
+  <div class="sidebar-footer">
+    <% if (locals.user) { %>
+      <div class="sidebar-user">
+        <div class="nav-avatar <%= user.role %>"><%= (user.username || '?').charAt(0).toUpperCase() %></div>
+        <div class="sidebar-user-info">
+          <strong><%= user.username %></strong>
+          <small>
+            <% if (user.role === 'customer') { %>Pencari Jasa<% } %>
+            <% if (user.role === 'technician') { %>Penyedia Jasa<% } %>
+            <% if (user.role === 'admin') { %>Admin<% } %>
+          </small>
+        </div>
+      </div>
+      <a href="/api/auth/logout" class="sidebar-link" style="color:var(--danger)">🚪 Keluar</a>
+    <% } else { %>
+      <a href="/" class="sidebar-link">🔑 Login</a>
+      <a href="/register" class="sidebar-link">📝 Daftar</a>
+    <% } %>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main-wrap">
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1 class="topbar-title"><%= typeof title !== 'undefined' ? title.replace(' — Quickfix','') : 'Dashboard' %></h1>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <%- body %>
+  </main>
 </div>
 
 <script src="/js/main.js"></script>
+<script>
+// Sidebar toggle
+const sb = document.getElementById('sidebar');
+const btn = document.getElementById('sidebarToggle');
+btn.addEventListener('click', () => {
+  sb.classList.toggle('collapsed');
+  localStorage.setItem('sidebarCollapsed', sb.classList.contains('collapsed'));
+});
+// Restore state
+if (localStorage.getItem('sidebarCollapsed') === 'true') sb.classList.add('collapsed');
+</script>
 </body>
 </html>
