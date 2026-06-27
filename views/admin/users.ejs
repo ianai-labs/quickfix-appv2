@@ -10,6 +10,7 @@ async function loadUsers() {
   const data = await res.json();
   if (!data.success) return;
   const users = data.data.users;
+  if (!users.length) { document.getElementById('userList').innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><h3>Belum ada customer</h3></div>'; return; }
   const roleIcons = { customer:'👤', technician:'👨‍🔧', admin:'👑' };
   const roleLabels = { customer:'Pencari Jasa', technician:'Penyedia Jasa', admin:'Admin' };
   const roleClasses = { customer:'badge-assigned', technician:'badge-otw', admin:'badge-done' };

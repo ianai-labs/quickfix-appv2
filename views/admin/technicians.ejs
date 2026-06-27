@@ -10,6 +10,7 @@ async function loadTechnicians() {
   const res = await fetch('/api/technicians');
   const data = await res.json();
   const techs = data.data.technicians;
+  if (!techs.length) { document.getElementById('techList').innerHTML = '<div class="empty-state"><div class="empty-icon">👨‍🔧</div><h3>Belum ada teknisi</h3></div>'; return; }
 
   document.getElementById('techList').innerHTML = `
     <table class="table">
