@@ -1,0 +1,71 @@
+<div id="orderDetail"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+
+<script src="/js/main.js"></script>
+<script>
+const orderId = window.location.pathname.split('/').pop();
+
+async function loadOrder() {
+  const res = await fetch(`/api/orders/${orderId}`);
+  const result = await res.json();
+  if (!result.success) { document.getElementById('orderDetail').innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><h3>${result.message}</h3></div>`; return; }
+
+  const o = result.data.order;
+  const steps = ['pending', 'assigned', 'on_the_way', 'in_progress', 'done'];
+  const labels = { pending: 'Pending', assigned: 'Assigned', on_the_way: 'OTW', in_progress: 'Progress', done: 'Selesai' };
+  const idx = steps.indexOf(o.status);
+
+  document.getElementById('orderDetail').innerHTML = `
+    <a href="/customer/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem">← Kembali</a>
+
+    <div class="card">
+      <div class="card-header"><h2>Order #${o.id} — ${o.layanan}</h2>${statusBadge(o.status)}</div>
+
+      <div class="stepper">${steps.map((s, i) => `<div class="stepper-step ${i < idx ? 'done' : i === idx ? 'active' : ''}">${labels[s]}</div>`).join('')}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.25rem 0">
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Layanan</label><p style="font-weight:600">${o.layanan}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Tanggal</label><p style="font-weight:600">${formatDate(o.created_at)}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi || '-'}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Alamat</label><p style="font-weight:600">${o.alamat}</p></div>
+        ${o.harga ? `<div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Harga</label><p style="font-weight:700;font-size:1.1rem;color:var(--success)">${formatIDR(o.harga)}</p></div>` : ''}
+      </div>
+
+      ${o.technician ? `
+        <div class="card" style="background:var(--gray-100)">
+          <h3 style="display:flex;align-items:center;gap:8px"><span class="nav-avatar technician" style="display:inline-flex">${(o.technician.nama||'?').charAt(0)}</span> ${o.technician.nama} ${o.technician.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : ''}</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.75rem">
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Spesialisasi</label><p style="font-size:0.9rem">${o.technician.spesialisasi}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">Rating</label><p style="font-size:0.9rem">⭐ ${o.technician.rating}</p></div>
+            <div><label style="font-size:0.75rem;color:var(--gray-500)">No HP</label><p style="font-size:0.9rem">${o.technician.no_hp || '-'}</p></div>
+          </div>
+        </div>
+      ` : '<p style="color:var(--gray-500);text-align:center;padding:1rem">Menunggu teknisi tersedia...</p>'}
+
+      ${o.status === 'on_the_way' ? `
+        <div class="card" style="border:2px solid var(--primary);margin-top:1rem">
+          <h3>🔐 Verifikasi Teknisi</h3>
+          <p style="color:var(--gray-500);font-size:0.85rem;margin:0.5rem 0">Masukkan kode OTP dari email saat teknisi tiba:</p>
+          <div style="display:flex;gap:8px"><input type="text" id="otpInput" class="form-control" placeholder="6 digit OTP" maxlength="6"><button class="btn btn-primary btn-sm" onclick="verifyOTP()">Verifikasi</button></div>
+        </div>` : ''}
+
+      ${o.photos.length ? `
+        <div style="margin-top:1rem"><h3 style="margin-bottom:0.75rem">📸 Foto Pekerjaan</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem">${o.photos.map(p => `
+          <div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" alt="${p.description||''}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>
+        `).join('')}</div></div>` : ''}
+    </div>`;
+}
+
+async function verifyOTP() {
+  const code = document.getElementById('otpInput').value.trim();
+  if (code.length !== 6) { showToast('Masukkan 6 digit OTP', 'error'); return; }
+  const res = await api('/api/otp/verify', { method: 'POST', body: JSON.stringify({ token: getCookie('token'), code, type: 'order_verify' }) });
+  const data = await res.json();
+  if (data.success) {
+    await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status: 'in_progress' }) });
+    showToast('Verifikasi berhasil!', 'success'); loadOrder();
+  } else showToast(data.message, 'error');
+}
+
+loadOrder();
+</script>

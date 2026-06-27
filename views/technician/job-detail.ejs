@@ -1,0 +1,68 @@
+<div id="jobDetail"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+
+<script src="/js/main.js"></script>
+<script>
+const orderId = window.location.pathname.split('/').pop();
+
+async function loadJob() {
+  const res = await fetch(`/api/orders/${orderId}`);
+  const result = await res.json();
+  if (!result.success) { document.getElementById('jobDetail').innerHTML = `<div class="empty-state"><h3>${result.message}</h3></div>`; return; }
+  const o = result.data.order;
+
+  const actions = [];
+  if (o.status === 'assigned') actions.push({ label: 'On The Way', status: 'on_the_way', cls: 'btn-warning', style: 'background:var(--warning);color:#fff' });
+  if (['on_the_way','in_progress'].includes(o.status)) {
+    if (o.status === 'on_the_way') actions.push({ label: 'Mulai Pekerjaan', status: 'in_progress', cls: 'btn-info' });
+    actions.push({ label: 'Selesai', status: 'done', cls: 'btn-success' });
+  }
+
+  document.getElementById('jobDetail').innerHTML = `
+    <a href="/technician/dashboard" style="display:inline-block;margin-bottom:1rem;font-size:0.85rem">← Kembali</a>
+
+    <div class="card">
+      <div class="card-header"><h2>Job #${o.id} — ${o.layanan}</h2>${statusBadge(o.status)}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0">
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Customer</label><p style="font-weight:600">${o.customer?.nama || '-'}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">No HP</label><p style="font-weight:600">${o.customer?.no_hp || '-'}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Deskripsi</label><p>${o.deskripsi || '-'}</p></div>
+        <div style="grid-column:span 2"><label style="font-size:0.8rem;color:var(--gray-500)">Alamat</label><p style="font-weight:600">${o.alamat}</p></div>
+      </div>
+
+      ${actions.length ? `<div style="display:flex;gap:8px;margin-bottom:1rem">${actions.map(a => `<button class="btn btn-sm ${a.cls}" onclick="updateStatus('${a.status}')" style="${a.style||''}">${a.label}</button>`).join('')}</div>` : o.status === 'done' ? '<p style="text-align:center;color:var(--success);font-weight:600;padding:1rem">✅ Pekerjaan Selesai</p>' : ''}
+
+      ${o.status !== 'done' ? `
+        <div class="card" style="background:var(--gray-100)">
+          <h3>📸 Upload Foto</h3>
+          <form id="uploadForm" enctype="multipart/form-data" style="margin-top:0.75rem">
+            <div class="form-group"><input type="file" name="photo" accept="image/*" required></div>
+            <div class="form-group"><input type="text" name="description" class="form-control" placeholder="Keterangan foto (contoh: Sebelum perbaikan)"></div>
+            <button type="submit" class="btn btn-primary btn-sm">Upload</button>
+          </form>
+        </div>` : ''}
+
+      ${o.photos.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.75rem;margin-top:1rem">${o.photos.map(p => `<div class="card" style="padding:0;overflow:hidden"><img src="${p.url}" alt="${p.description||''}" style="width:100%;aspect-ratio:1;object-fit:cover"><p style="padding:8px;font-size:0.75rem;text-align:center">${p.description||''}</p></div>`).join('')}</div>` : ''}
+    </div>`;
+
+  document.getElementById('uploadForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    fd.append('order_id', orderId);
+    const res = await api('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) { showToast('Foto berhasil diupload!', 'success'); loadJob(); }
+    else showToast(data.message, 'error');
+  });
+}
+
+async function updateStatus(status) {
+  if (status === 'done' && !await confirmAction('Selesaikan pekerjaan ini?')) return;
+  const res = await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status }) });
+  const data = await res.json();
+  if (data.success) { showToast(data.message, 'success'); loadJob(); }
+  else showToast(data.message, 'error');
+}
+
+loadJob();
+</script>

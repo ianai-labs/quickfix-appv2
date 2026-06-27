@@ -1,0 +1,5 @@
+<% if (locals.message) { %>
+  <div class="alert <%= message.type === 'success' ? 'alert-success' : 'alert-danger' %>" style="margin-bottom: 1rem;">
+    <%= message.text %>
+  </div>
+<% } %>

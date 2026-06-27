@@ -1,0 +1,74 @@
+<div class="card">
+  <div class="card-header">
+    <h2>Job Queue</h2>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="techBadge" style="font-size:0.85rem;color:var(--gray-500)"></span>
+      <button id="toggleBtn" class="btn btn-sm btn-success" onclick="toggleStatus()">Online</button>
+    </div>
+  </div>
+
+  <div style="margin-bottom:1.5rem"><h3 style="margin-bottom:0.75rem">📥 Order Masuk</h3><div id="pendingOrders"><div class="loading-center"><div class="spinner"></div></div></div></div>
+  <div><h3 style="margin-bottom:0.75rem">🔧 Sedang Dikerjakan</h3><div id="activeOrders"><div class="loading-center"><div class="spinner"></div></div></div></div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+let techId = null, techStatus = 'offline';
+
+async function loadDashboard() {
+  const [meRes, techsRes, ordersRes] = await Promise.all([
+    fetch('/api/auth/me'), fetch('/api/technicians'), fetch('/api/orders')
+  ]);
+  const meData = await meRes.json();
+  const techsData = await techsRes.json();
+  const ordersData = await ordersRes.json();
+
+  const me = techsData.data.technicians.find(t => t.user_id === meData.data.user.id);
+  if (me) {
+    techId = me.id; techStatus = me.status;
+    document.getElementById('techBadge').innerHTML = `⭐ ${me.rating} ${me.is_premium ? '· 🔥 Premium' : ''} · ${me.total_jobs} job selesai`;
+    document.getElementById('toggleBtn').textContent = techStatus === 'online' ? '🟢 Online' : '🔴 Offline';
+    document.getElementById('toggleBtn').className = `btn btn-sm ${techStatus === 'online' ? 'btn-success' : 'btn-outline'}`;
+  }
+
+  const orders = ordersData.data.orders || [];
+  const pending = orders.filter(o => o.status === 'assigned');
+  const active = orders.filter(o => ['on_the_way', 'in_progress'].includes(o.status));
+
+  document.getElementById('pendingOrders').innerHTML = pending.length ? pending.map(o => `
+    <div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center">
+      <div><strong>#${o.id} — ${o.layanan}</strong><br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · ${o.alamat}</small></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-success" onclick="acceptOrder(${o.id})">Terima</button>
+        <button class="btn btn-sm btn-outline" onclick="rejectOrder(${o.id})">Tolak</button>
+      </div>
+    </div>`).join('') : '<div class="empty-state"><p>Tidak ada order menunggu</p></div>';
+
+  document.getElementById('activeOrders').innerHTML = active.length ? active.map(o => `
+    <div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center">
+      <div><strong>#${o.id} — ${o.layanan}</strong> ${statusBadge(o.status)}<br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · ${o.alamat}</small></div>
+      <a href="/technician/jobs/${o.id}" class="btn btn-sm btn-info">Detail</a>
+    </div>`).join('') : '<div class="empty-state"><p>Tidak ada order aktif</p></div>';
+}
+
+async function toggleStatus() {
+  const ns = techStatus === 'online' ? 'offline' : 'online';
+  await api(`/api/technicians/${techId}/status`, { method: 'PUT', body: JSON.stringify({ status: ns }) });
+  techStatus = ns; loadDashboard(); showToast(ns === 'online' ? 'Anda sekarang Online' : 'Anda sekarang Offline', 'info');
+}
+
+async function acceptOrder(id) {
+  const res = await api(`/api/orders/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'on_the_way' }) });
+  const data = await res.json();
+  if (data.success) { showToast('Order diterima! Status: On The Way', 'success'); loadDashboard(); }
+  else showToast(data.message, 'error');
+}
+
+async function rejectOrder(id) {
+  if (!await confirmAction('Tolak order ini?')) return;
+  await api(`/api/orders/${id}/assign`, { method: 'PUT' });
+  showToast('Order ditolak & dialihkan', 'info'); loadDashboard();
+}
+
+loadDashboard();
+</script>

@@ -1,0 +1,68 @@
+<div class="card">
+  <div class="card-header">
+    <h2>Semua Orders</h2>
+  </div>
+
+  <div class="toolbar">
+    <select id="statusFilter" onchange="loadOrders()">
+      <option value="">Semua Status</option>
+      <option value="pending">Pending</option>
+      <option value="assigned">Assigned</option>
+      <option value="on_the_way">On The Way</option>
+      <option value="in_progress">In Progress</option>
+      <option value="done">Done</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </div>
+
+  <div id="orderList">
+    <p style="text-align: center; padding: 2rem; color: #888;">Memuat data...</p>
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+const badges = {
+  pending: '<span class="badge" style="background:#6c757d;color:#fff;padding:2px 8px;border-radius:4px;">Pending</span>',
+  assigned: '<span class="badge" style="background:#17a2b8;color:#fff;padding:2px 8px;border-radius:4px;">Assigned</span>',
+  on_the_way: '<span class="badge" style="background:#ffc107;color:#222;padding:2px 8px;border-radius:4px;">OTW</span>',
+  in_progress: '<span class="badge" style="background:#007bff;color:#fff;padding:2px 8px;border-radius:4px;">In Progress</span>',
+  done: '<span class="badge" style="background:#28a745;color:#fff;padding:2px 8px;border-radius:4px;">Done</span>',
+  cancelled: '<span class="badge" style="background:#dc3545;color:#fff;padding:2px 8px;border-radius:4px;">Cancelled</span>',
+};
+
+async function loadOrders() {
+  const status = document.getElementById('statusFilter').value;
+  const url = status ? `/api/orders?status=${status}&limit=50` : '/api/orders?limit=50';
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if (!data.success || !data.data.orders.length) {
+    document.getElementById('orderList').innerHTML =
+      '<p style="text-align:center;padding:2rem;color:#888;">Belum ada order.</p>';
+    return;
+  }
+
+  const rows = data.data.orders.map(o => `
+    <tr>
+      <td>#${o.id}</td>
+      <td>${o.layanan}</td>
+      <td>${o.customer?.nama || '-'}</td>
+      <td>${o.technician?.nama || '<span style="color:#888;">-</span>'}</td>
+      <td>${badges[o.status] || o.status}</td>
+      <td>${o.harga ? 'Rp' + Number(o.harga).toLocaleString('id-ID') : '-'}</td>
+      <td>${new Date(o.created_at).toLocaleDateString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('orderList').innerHTML = `
+    <table class="table">
+      <thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Teknisi</th><th>Status</th><th>Harga</th><th>Tgl</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p style="text-align:center;color:#888;margin-top:8px;">Total: ${data.data.pagination.total_items} orders</p>
+  `;
+}
+
+loadOrders();
+</script>

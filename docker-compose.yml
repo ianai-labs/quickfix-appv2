@@ -1,0 +1,85 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: quickfix_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-quickfix_v2}
+      MYSQL_USER: ${MYSQL_USER:-quickfix_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-quickfix_pass}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - quickfix_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: quickfix_phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - quickfix_network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quickfix_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=${MYSQL_DATABASE:-quickfix_v2}
+      - DB_USER=${MYSQL_USER:-quickfix_user}
+      - DB_PASS=${MYSQL_PASSWORD:-quickfix_pass}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - DEVICE_SECRET=${DEVICE_SECRET}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - quickfix_network
+    command: >
+      sh -c "
+        if [ ! -d node_modules ]; then npm install; fi &&
+        npx nodemon server.js
+      "
+
+volumes:
+  mysql_data:
+
+networks:
+  quickfix_network:
+    driver: bridge

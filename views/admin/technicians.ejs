@@ -1,0 +1,48 @@
+<div class="card">
+  <div class="card-header"><h2>Kelola Teknisi</h2></div>
+
+  <div id="techList"><p style="text-align:center;padding:2rem;color:#888;">Memuat...</p></div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadTechnicians() {
+  const res = await fetch('/api/technicians');
+  const data = await res.json();
+  const techs = data.data.technicians;
+
+  document.getElementById('techList').innerHTML = `
+    <table class="table">
+      <thead><tr><th>Nama</th><th>Spesialisasi</th><th>Rating</th><th>Premium</th><th>Status</th><th>Jobs</th><th>Aksi</th></tr></thead>
+      <tbody>${techs.map(t => `
+        <tr>
+          <td>${t.nama}</td>
+          <td>${t.spesialisasi}</td>
+          <td>&#x2B50; ${t.rating}</td>
+          <td>${t.is_premium ? '&#x1F525; Ya' : 'Tidak'}</td>
+          <td>${t.status}</td>
+          <td>${t.total_jobs}</td>
+          <td class="actions">
+            <button class="btn btn-sm ${t.is_premium ? 'btn-danger' : 'btn-success'}" onclick="togglePremium(${t.id}, ${t.is_premium})">
+              ${t.is_premium ? 'Lepas Premium' : 'Set Premium'}
+            </button>
+          </td>
+        </tr>
+      `).join('')}</tbody>
+    </table>
+  `;
+}
+
+async function togglePremium(id, current) {
+  const res = await fetch(`/api/technicians/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_premium: !current }),
+  });
+  const result = await res.json();
+  if (result.success) loadTechnicians();
+  else alert(result.message);
+}
+
+loadTechnicians();
+</script>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Quickfix</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="login-bg">
+  <div class="login-card">
+    <h1>&#x1F527; Quickfix</h1>
+    <p>Platform Layanan Perbaikan Rumah</p>
+
+    <div class="role-tabs" id="roleTabs">
+      <button class="role-tab active" data-role="customer">&#x1F464; Pencari Jasa</button>
+      <button class="role-tab" data-role="technician">&#x1F468;&#x200D;&#x1F527; Penyedia Jasa</button>
+    </div>
+    <p class="role-hint" id="roleHint">Untuk booking & memantau perbaikan</p>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Username atau Email</label>
+        <input type="text" name="login" class="form-control" required autofocus placeholder="nama@email.com">
+        <div class="form-error" id="err-login"></div>
+      </div>
+      <div class="form-group pw-group">
+        <label>Password</label>
+        <input type="password" name="password" class="form-control" required placeholder="••••••••">
+        <button type="button" class="pw-toggle">&#x1F441;&#xFE0F;</button>
+        <div class="form-error" id="err-password"></div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="loginBtn">Masuk</button>
+    </form>
+
+    <div class="login-footer">
+      <a href="/register">Buat akun baru</a> &middot;
+      <a href="/forgot-password">Lupa password?</a>
+    </div>
+
+    <div class="login-demo">
+      <small>Demo — klik langsung masuk</small>
+      <div class="demo-btns">
+        <button class="demo-btn" onclick="quickLogin('budi','admin123','customer')">&#x1F464; Budi</button>
+        <button class="demo-btn" onclick="quickLogin('andi','admin123','technician')">&#x1F468;&#x200D;&#x1F527; Andi</button>
+        <button class="demo-btn" onclick="quickLogin('admin','admin123','admin')">&#x1F451; Admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OTP Modal -->
+<div class="otp-overlay" id="otpOverlay" style="display:none">
+  <div class="otp-modal">
+    <h2>&#x1F510; Verifikasi Perangkat Baru</h2>
+    <p style="color:var(--gray-500);font-size:0.85rem;margin-bottom:1rem" id="otpDevice"></p>
+    <div class="otp-dummy" id="otpDummy" style="display:none">
+      <div class="otp-dummy-label">&#x1F6A7; Demo Mode</div>
+      <div class="otp-dummy-code" id="otpDummyCode"></div>
+      <div class="otp-dummy-hint">Production: kode dikirim via email (konfigurasi SMTP di <code>.env</code>)</div>
+    </div>
+    <p style="color:var(--gray-500);font-size:0.8rem;margin-bottom:1rem">Kode OTP dikirim ke email Anda. Cek juga phpMyAdmin → <code>otp_codes</code>.</p>
+    <div class="form-group">
+      <input type="text" id="otpInput" class="form-control" placeholder="6 digit kode OTP" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;font-size:1.2rem;letter-spacing:4px">
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" style="flex:1" id="otpCancel">Batal</button>
+      <button class="btn btn-primary" style="flex:1" id="otpSubmit">Verifikasi</button>
+    </div>
+    <div class="otp-error" id="otpError"></div>
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+let currentTempToken = null;
+let selectedRole = 'customer';
+
+document.querySelectorAll('.role-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    selectedRole = tab.dataset.role;
+    document.getElementById('roleHint').textContent = selectedRole === 'customer' ? 'Untuk booking & memantau perbaikan' : 'Untuk menerima & mengerjakan order';
+  });
+});
+
+async function quickLogin(u, p, r) {
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-role="${r === 'admin' ? 'technician' : r}"]`).classList.add('active');
+  selectedRole = r;
+  document.querySelector('[name="login"]').value = u;
+  document.querySelector('[name="password"]').value = p;
+  document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+}
+
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  setLoading(btn, 'Masuk...');
+  clearErrors();
+  const data = Object.fromEntries(new FormData(e.target));
+
+  if (!data.login) { showFieldError('err-login', 'Username/email wajib diisi'); resetLoading(btn); return; }
+  if (!data.password) { showFieldError('err-password', 'Password wajib diisi'); resetLoading(btn); return; }
+
+  try {
+    const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const result = await res.json();
+
+    if (result.success && result.data.require_otp) {
+      currentTempToken = result.data.temp_token;
+      document.getElementById('otpDevice').textContent = 'Perangkat: ' + (result.data.device_name || 'Unknown');
+      document.getElementById('otpInput').value = '';
+      document.getElementById('otpError').style.display = 'none';
+      if (result.data.dev_otp) {
+        document.getElementById('otpDummy').style.display = 'block';
+        document.getElementById('otpDummyCode').textContent = result.data.dev_otp;
+      } else { document.getElementById('otpDummy').style.display = 'none'; }
+      document.getElementById('otpOverlay').style.display = 'flex';
+      document.getElementById('otpInput').focus();
+    } else if (result.success) {
+      const ur = result.data.user.role;
+      if ((selectedRole === 'customer' && ur !== 'customer') || (selectedRole === 'technician' && ur === 'customer')) {
+        showToast('Akun ini terdaftar sebagai ' + (ur === 'technician' ? 'Penyedia Jasa' : 'Pencari Jasa') + '. Pilih tab yang sesuai.', 'error');
+        resetLoading(btn); return;
+      }
+      const r = { admin: '/admin/dashboard', technician: '/technician/dashboard', customer: '/customer/dashboard' };
+      window.location.href = r[ur] || '/';
+    } else {
+      showToast(result.message, 'error');
+    }
+  } catch (_) {
+    showToast('Gagal terhubung ke server.', 'error');
+  }
+  resetLoading(btn);
+});
+
+document.getElementById('otpSubmit').addEventListener('click', async () => {
+  const code = document.getElementById('otpInput').value.trim();
+  if (code.length !== 6) { showOtpError('Masukkan 6 digit kode OTP'); return; }
+  setLoading(document.getElementById('otpSubmit'), '...');
+  try {
+    const res = await fetch('/api/auth/verify-device', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ temp_token: currentTempToken, code }) });
+    const result = await res.json();
+    if (result.success) { document.getElementById('otpOverlay').style.display = 'none'; const r = { admin: '/admin/dashboard', technician: '/technician/dashboard', customer: '/customer/dashboard' }; window.location.href = r[result.data.user.role]; }
+    else showOtpError(result.message);
+  } catch (_) { showOtpError('Gagal verifikasi'); }
+  resetLoading(document.getElementById('otpSubmit'));
+});
+
+document.getElementById('otpInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('otpSubmit').click(); });
+document.getElementById('otpCancel').addEventListener('click', () => { document.getElementById('otpOverlay').style.display = 'none'; });
+document.getElementById('otpOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('otpOverlay').style.display = 'none'; });
+
+function showFieldError(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.style.display = 'block'; }
+function showOtpError(msg) { const el = document.getElementById('otpError'); el.textContent = msg; el.style.display = 'block'; }
+function clearErrors() { document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none'); }
+
+setupPasswordToggles();
+</script>
+</body>
+</html>

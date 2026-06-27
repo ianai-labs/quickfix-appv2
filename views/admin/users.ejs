@@ -1,0 +1,35 @@
+<div class="card">
+  <div class="card-header"><h2>Daftar User</h2></div>
+
+  <div id="userList"><p style="text-align:center;padding:2rem;color:#888;">Memuat...</p></div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadUsers() {
+  // Since there's no dedicated admin users endpoint, we fetch from available sources
+  const [techRes, ordersRes] = await Promise.all([
+    fetch('/api/technicians'),
+    fetch('/api/orders?limit=1'),
+  ]);
+
+  const techsData = await techRes.json();
+  const techs = techsData.data.technicians;
+
+  document.getElementById('userList').innerHTML = `
+    <table class="table">
+      <thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Detail</th></tr></thead>
+      <tbody>${techs.map(t => `
+        <tr>
+          <td>${t.nama}</td>
+          <td>${t.email}</td>
+          <td><span class="badge" style="background:#17a2b8;color:#fff;padding:2px 8px;border-radius:4px;">technician</span></td>
+          <td>&#x2B50; ${t.rating} | ${t.is_premium ? 'Premium' : 'Regular'} | ${t.total_jobs} jobs</td>
+        </tr>
+      `).join('')}</tbody>
+    </table>
+  `;
+}
+
+loadUsers();
+</script>
