@@ -35,4 +35,22 @@ async function listUsers(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { listPricing, updatePricing, listUsers };
+async function stats(req, res, next) {
+  try {
+    const { Order, Transaction, Technician, User } = require('../models');
+    const { fn, col } = require('sequelize');
+
+    const [orderCounts, txnData, techCounts] = await Promise.all([
+      Order.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+      Transaction.findAll({ attributes: ['status', [fn('SUM', col('amount')), 'total'], [fn('SUM', col('commission')), 'commission']], group: ['status'], raw: true }),
+      Technician.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
+    ]);
+
+    const totalRevenue = txnData.filter(t => ['paid','released'].includes(t.status)).reduce((s,t) => s + Number(t.total||0), 0);
+    const totalCommission = txnData.filter(t => ['paid','released'].includes(t.status)).reduce((s,t) => s + Number(t.commission||0), 0);
+
+    res.json({ success: true, data: { orderCounts, txnData, techCounts, totalRevenue, totalCommission } });
+  } catch (error) { next(error); }
+}
+
+module.exports = { listPricing, updatePricing, listUsers, stats };

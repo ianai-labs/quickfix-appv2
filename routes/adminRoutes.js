@@ -14,5 +14,6 @@ router.use(auth);
 router.use(authorize(USER_ROLES.ADMIN));
 router.put('/pricing/:id', ctrl.updatePricing);
 router.get('/users', ctrl.listUsers);
+router.get('/stats', ctrl.stats);
 
 module.exports = router;
