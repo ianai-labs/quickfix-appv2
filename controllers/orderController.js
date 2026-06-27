@@ -240,6 +240,20 @@ async function update(req, res, next) {
     const { role, user_id } = req.user;
     const { status, harga, otp_code: _otpCode } = req.body;
 
+    // Customer can cancel their own pending/assigned orders
+    if (role === USER_ROLES.CUSTOMER && status === ORDER_STATUS.CANCELLED) {
+      const customer = await Customer.findOne({ where: { user_id } });
+      if (!customer || order.customer_id !== customer.id) {
+        return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke order ini.' });
+      }
+      if (![ORDER_STATUS.PENDING, ORDER_STATUS.ASSIGNED].includes(order.status)) {
+        return res.status(400).json({ success: false, message: 'Order hanya dapat dibatalkan saat status Pending atau Assigned.' });
+      }
+      await order.update({ status: ORDER_STATUS.CANCELLED });
+      const fullOrder = await Order.findByPk(order.id, { include: ORDER_INCLUDES });
+      return res.json({ success: true, message: 'Order berhasil dibatalkan.', data: { order: buildOrderResponse(fullOrder) } });
+    }
+
     // Authorization: only admin or assigned technician can update
     const isAdmin = role === USER_ROLES.ADMIN;
     let isAssignedTech = false;
