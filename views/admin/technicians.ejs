@@ -20,8 +20,8 @@ async function loadTechnicians() {
           <td>${t.nama}</td>
           <td>${t.spesialisasi}</td>
           <td>&#x2B50; ${t.rating}</td>
-          <td>${t.is_premium ? '&#x1F525; Ya' : 'Tidak'}</td>
-          <td>${t.status}</td>
+          <td>${t.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : '<span class="badge badge-pending">Regular</span>'}</td>
+          <td>${t.status === 'online' ? '🟢 Online' : t.status === 'offline' ? '🔴 Offline' : '🟡 Busy'}</td>
           <td>${t.total_jobs}</td>
           <td class="actions">
             <button class="btn btn-sm ${t.is_premium ? 'btn-danger' : 'btn-success'}" onclick="togglePremium(${t.id}, ${t.is_premium})">
