@@ -270,7 +270,7 @@ async function update(req, res, next) {
       });
     }
 
-    // State machine validation
+    // State machine validation + OTP enforcement
     if (status && !isAdmin) {
       const allowed = VALID_TRANSITIONS[order.status] || [];
       if (!allowed.includes(status)) {
@@ -278,6 +278,17 @@ async function update(req, res, next) {
           success: false,
           message: `Tidak dapat mengubah status dari "${order.status}" ke "${status}".`,
         });
+      }
+      // OTP must be verified before on_the_way -> in_progress
+      if (order.status === ORDER_STATUS.ON_THE_WAY && status === ORDER_STATUS.IN_PROGRESS) {
+        const { OtpCode } = require('../models');
+        const verified = await OtpCode.findOne({
+          where: { user_id: (await Customer.findByPk(order.customer_id))?.user_id, type: OTP_TYPES.ORDER_VERIFY, used: true },
+          order: [['created_at', 'DESC']],
+        });
+        if (!verified) {
+          return res.status(400).json({ success: false, message: 'Customer belum memverifikasi OTP. Teknisi tidak dapat memulai pekerjaan.' });
+        }
       }
     }
 

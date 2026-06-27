@@ -26,7 +26,12 @@ async function loadProfile() {
         <div><label style="font-size:0.8rem;color:var(--gray-500)">Bergabung</label><p style="font-weight:600">${formatDate(me.created_at)}</p></div>
       </div>
 
-      <p style="margin-top:1rem;font-size:0.8rem;color:var(--gray-500)">💡 Alamat & No HP diambil dari data order terakhir. Update melalui halaman order baru.</p>
+      <h3 style="margin-top:1.5rem">✏️ Edit Profil</h3>
+      <form id="profileForm" style="margin-top:0.5rem">
+        <div class="form-group"><label>Nomor HP</label><input type="text" name="no_hp" id="noHpInput" class="form-control" placeholder="0812xxxx"></div>
+        <div class="form-group"><label>Alamat</label><textarea name="alamat" id="alamatInput" class="form-control" rows="2" placeholder="Alamat lengkap"></textarea></div>
+        <button type="submit" class="btn btn-primary btn-sm">Simpan Profil</button>
+      </form>
 
       <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
       <form id="pwForm" style="margin-top:0.5rem">
@@ -36,6 +41,19 @@ async function loadProfile() {
         <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
       </form>
     </div>`;
+
+  // Load profile data from orders
+  const allOrders = await fetch('/api/orders?limit=1');
+  const orderSample = (await allOrders.json()).data?.orders?.[0];
+  if (orderSample?.customer?.no_hp) document.getElementById('noHpInput').value = orderSample.customer.no_hp;
+
+  document.getElementById('profileForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const res = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(data) });
+    const result = await res.json();
+    showToast(result.message, result.success ? 'success' : 'error');
+  });
 
   document.getElementById('pwForm').addEventListener('submit', async e => {
     e.preventDefault();

@@ -17,7 +17,7 @@ const OtpCode = sequelize.define('OtpCode', {
     },
   },
   code: {
-    type: DataTypes.STRING(6),
+    type: DataTypes.STRING(255),
     allowNull: false,
   },
   type: {

@@ -39,6 +39,7 @@ router.post('/verify-device', ctrl.verifyDevice);
 router.get('/me', auth, ctrl.me);
 router.put('/change-password', auth, ctrl.changePassword);
 router.post('/refresh', ctrl.refreshToken);
+router.put('/profile', auth, ctrl.updateProfile);
 router.get('/logout', ctrl.logout);
 router.post('/logout', auth, ctrl.logout);
 

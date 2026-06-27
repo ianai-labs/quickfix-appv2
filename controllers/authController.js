@@ -509,4 +509,18 @@ async function refreshToken(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout, changePassword, refreshToken };
+async function updateProfile(req, res, next) {
+  try {
+    const { no_hp, alamat } = req.body;
+    const user = await User.findByPk(req.user.user_id, { include: [{ model: Customer }] });
+    if (!user || !user.Customer) return res.status(404).json({ success: false, message: 'Profil customer tidak ditemukan.' });
+
+    if (no_hp !== undefined) user.Customer.no_hp = no_hp;
+    if (alamat !== undefined) user.Customer.alamat = alamat;
+    await user.Customer.save();
+
+    res.json({ success: true, message: 'Profil diperbarui.', data: { no_hp: user.Customer.no_hp, alamat: user.Customer.alamat } });
+  } catch (error) { next(error); }
+}
+
+module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout, changePassword, refreshToken, updateProfile };

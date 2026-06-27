@@ -72,7 +72,7 @@ function render(o, reviews, actions) {
         ${reviews.length ? reviews.map(r => `
           <div class="card" style="padding:0.75rem;margin-bottom:0.5rem">
             <div style="display:flex;justify-content:space-between"><strong>${r.reviewer?.username||'?'}</strong><span style="color:var(--primary)">${'⭐'.repeat(r.rating)}</span></div>
-            <p style="font-size:0.85rem;color:var(--gray-700);margin-top:4px">esc(r.comment)||''}</p>
+            <p style="font-size:0.85rem;color:var(--gray-700);margin-top:4px">${esc(r.comment)||''}</p>
           </div>
         `).join('') : '<p style="color:var(--gray-500);font-size:0.85rem">Belum ada ulasan</p>'}
 
