@@ -75,6 +75,7 @@ app.use('/api/upload', require('./routes/uploadRoutes'));
 app.use('/api/otp', require('./routes/otpRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // ── View Routes ──
 app.use('/', viewRoutes());

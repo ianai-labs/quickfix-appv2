@@ -146,14 +146,13 @@ async function payNow(orderId) {
       onError: () => showToast('Pembayaran gagal', 'error'),
     });
   } else if (data.success && data.data.midtrans_error) {
-    // Demo mode: simulate payment
-    if (confirm('Demo Mode: Midtrans key belum dikonfigurasi.\nSimulasikan pembayaran sukses?')) {
-      await fetch('/api/payment/webhook', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: `QF-${orderId}-${Date.now()}`, transaction_status: 'settlement', payment_type: 'demo' })
-      });
-      showToast('Pembayaran (demo) berhasil!', 'success'); loadOrder();
-    }
+    // Demo mode: auto-simulate payment
+    showToast('🔧 Demo Mode — pembayaran otomatis sukses', 'info');
+    await fetch('/api/payment/webhook', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: `QF-${orderId}-${Date.now()}`, transaction_status: 'settlement', payment_type: 'demo' })
+    });
+    showToast('Pembayaran berhasil! (demo)', 'success'); loadOrder();
   } else {
     showToast(data.message || 'Gagal memproses pembayaran', 'error');
   }

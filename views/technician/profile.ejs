@@ -1,0 +1,57 @@
+<div id="profilePage"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadProfile() {
+  const [meRes, techsRes, ordersRes] = await Promise.all([
+    fetch('/api/auth/me'), fetch('/api/technicians'), fetch('/api/orders?limit=100')
+  ]);
+  const me = (await meRes.json()).data.user;
+  const techs = (await techsRes.json()).data.technicians;
+  const orders = (await ordersRes.json()).data.orders || [];
+  const tech = techs.find(t => t.user_id === me.id);
+  if (!tech) { document.getElementById('profilePage').innerHTML = '<div class="empty-state"><h3>Profil teknisi tidak ditemukan</h3></div>'; return; }
+
+  const doneOrders = orders.filter(o => o.status === 'done');
+  const totalEarned = doneOrders.reduce((sum, o) => sum + (o.harga ? Number(o.harga) * 0.85 : 0), 0);
+
+  document.getElementById('profilePage').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h2>Profil Teknisi</h2>${tech.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : ''}</div>
+
+      <div class="stats-grid" style="margin-bottom:1.5rem">
+        <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${tech.rating}</div><div class="stat-label">Rating</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${tech.total_jobs}</div><div class="stat-label">Job Selesai</div></div>
+        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${formatIDR(totalEarned)}</div><div class="stat-label">Estimasi Pendapatan</div></div>
+        <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-value" style="text-transform:capitalize">${tech.status}</div><div class="stat-label">Status</div></div>
+      </div>
+
+      ${tech.spesialisasi === '(isi nanti)' || !tech.spesialisasi ? `
+        <div class="alert alert-danger">⚠️ Spesialisasi belum diisi! Lengkapi profil Anda agar bisa menerima order yang sesuai.</div>
+      ` : ''}
+
+      <form id="profileForm">
+        <div class="form-group">
+          <label>Spesialisasi (pisahkan dengan koma)</label>
+          <input type="text" name="spesialisasi" class="form-control" value="${tech.spesialisasi === '(isi nanti)' ? '' : tech.spesialisasi}" placeholder="contoh: AC, Listrik, Pipa">
+        </div>
+        <div class="form-group">
+          <label>Nomor HP</label>
+          <input type="text" name="no_hp" class="form-control" value="${tech.no_hp || ''}" placeholder="0812xxxx">
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan Profil</button>
+      </form>
+    </div>`;
+
+  document.getElementById('profileForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    const res = await api(`/api/technicians/${tech.id}`, { method: 'PUT', body: JSON.stringify(data) });
+    const result = await res.json();
+    if (result.success) { showToast('Profil disimpan!', 'success'); loadProfile(); }
+    else showToast(result.message, 'error');
+  });
+}
+
+loadProfile();
+</script>

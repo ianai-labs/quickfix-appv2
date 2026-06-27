@@ -61,6 +61,14 @@ module.exports = function viewRoutes() {
     res.render('technician/job-detail', { title: 'Detail Job — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
+  router.get('/technician/profile', requireAuth, (req, res) => {
+    res.render('technician/profile', { title: 'Profil Teknisi — Quickfix', user: req.user, active: 'profile', message: null });
+  });
+
+  router.get('/customer/profile', requireAuth, (req, res) => {
+    res.render('customer/profile', { title: 'Profil Saya — Quickfix', user: req.user, active: 'profile', message: null });
+  });
+
   // ── Admin ──
   router.get('/admin/dashboard', requireAuth, (req, res) => {
     res.render('admin/dashboard', { title: 'Dashboard Admin — Quickfix', user: req.user, active: 'dashboard', message: null });

@@ -1,4 +1,5 @@
-const { Review, Order, Technician, User } = require('../models');
+const { Op, fn, col } = require('sequelize');
+const { Review, Order, Technician, User, Customer } = require('../models');
 
 async function create(req, res, next) {
   try {
@@ -14,22 +15,15 @@ async function create(req, res, next) {
 
     // Determine reviewee
     let revieweeId;
-    if (order.customer_id) {
-      const { Customer } = require('../models');
-      const cust = await Customer.findByPk(order.customer_id);
-      if (cust && cust.user_id === reviewerId) {
-        // Customer reviews technician
-        const tech = order.technician_id ? await Technician.findByPk(order.technician_id) : null;
-        if (!tech) return res.status(400).json({ success: false, message: 'Teknisi tidak ditemukan.' });
-        revieweeId = tech.user_id;
-      }
+    const cust = await Customer.findByPk(order.customer_id);
+    if (cust && cust.user_id === reviewerId) {
+      const tech = order.technician_id ? await Technician.findByPk(order.technician_id) : null;
+      if (!tech) return res.status(400).json({ success: false, message: 'Teknisi tidak ditemukan.' });
+      revieweeId = tech.user_id;
     }
     if (!revieweeId && order.technician_id) {
       const tech = await Technician.findByPk(order.technician_id);
       if (tech && tech.user_id === reviewerId) {
-        // Technician reviews customer
-        const { Customer } = require('../models');
-        const cust = await Customer.findByPk(order.customer_id);
         if (!cust) return res.status(400).json({ success: false, message: 'Customer tidak ditemukan.' });
         revieweeId = cust.user_id;
       }
@@ -47,7 +41,7 @@ async function create(req, res, next) {
     if (tech) {
       const { avg } = await Review.findOne({
         where: { reviewee_id: revieweeId },
-        attributes: [[require('sequelize').fn('AVG', require('sequelize').col('rating')), 'avg']],
+        attributes: [[fn('AVG', col('rating')), 'avg']],
         raw: true,
       }) || {};
       if (avg) await tech.update({ rating: Math.round(parseFloat(avg) * 10) / 10 });

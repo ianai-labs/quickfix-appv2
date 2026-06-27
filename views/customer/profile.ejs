@@ -1,0 +1,40 @@
+<div id="profilePage"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
+
+<script src="/js/main.js"></script>
+<script>
+async function loadProfile() {
+  const meRes = await fetch('/api/auth/me');
+  const me = (await meRes.json()).data.user;
+
+  // Get customer data from orders endpoint user info
+  const ordersRes = await fetch('/api/orders?limit=1');
+  const orderSample = (await ordersRes.json()).data?.orders?.[0];
+
+  document.getElementById('profilePage').innerHTML = `
+    <div class="card" style="max-width:600px;margin:0 auto">
+      <div class="card-header"><h2>👤 Profil Saya</h2></div>
+
+      <div class="stats-grid" style="margin-bottom:1.5rem">
+        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="totalOrders">-</div><div class="stat-label">Total Order</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="doneOrders">-</div><div class="stat-label">Selesai</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Username</label><p style="font-weight:600">${me.username}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Email</label><p style="font-weight:600">${me.email}</p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Role</label><p><span class="badge badge-assigned">Pencari Jasa</span></p></div>
+        <div><label style="font-size:0.8rem;color:var(--gray-500)">Bergabung</label><p style="font-weight:600">${formatDate(me.created_at)}</p></div>
+      </div>
+
+      <p style="margin-top:1rem;font-size:0.8rem;color:var(--gray-500)">💡 Alamat & No HP diambil dari data order terakhir. Update melalui halaman order baru.</p>
+    </div>`;
+
+  // Load stats
+  const allOrders = await fetch('/api/orders?limit=100');
+  const orders = (await allOrders.json()).data?.orders || [];
+  document.getElementById('totalOrders').textContent = orders.length;
+  document.getElementById('doneOrders').textContent = orders.filter(o => o.status === 'done').length;
+}
+
+loadProfile();
+</script>
