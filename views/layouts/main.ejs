@@ -66,6 +66,13 @@
 <div class="main-wrap">
   <header class="topbar">
     <div class="topbar-left">
+      <div class="breadcrumb" style="font-size:0.75rem;color:var(--gray-500);margin-bottom:2px">
+        <a href="/" style="color:var(--gray-500)">Home</a>
+        <% if (locals.user) { %>
+          › <a href="/<%= user.role %>/dashboard" style="color:var(--gray-500)"><%= user.role === 'customer' ? 'Customer' : user.role === 'technician' ? 'Teknisi' : 'Admin' %></a>
+        <% } %>
+        › <span style="color:var(--dark)"><%= typeof title !== 'undefined' ? title.replace(' — Quickfix','') : 'Dashboard' %></span>
+      </div>
       <h1 class="topbar-title"><%= typeof title !== 'undefined' ? title.replace(' — Quickfix','') : 'Dashboard' %></h1>
     </div>
   </header>
