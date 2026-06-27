@@ -50,7 +50,7 @@ async function loadOrders(page = 1) {
 }
 
 async function releasePayment(orderId) {
-  if (!confirm('Lepaskan dana ke teknisi?')) return;
+  if (!(await confirmAction('Lepaskan dana ke teknisi?'))) return;
   const res = await api(`/api/payment/release/${orderId}`, { method: 'POST' });
   const data = await res.json();
   if (data.success) { showToast('Dana dilepas ke teknisi!', 'success'); loadOrders(); }

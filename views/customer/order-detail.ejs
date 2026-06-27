@@ -160,7 +160,7 @@ async function payNow(orderId) {
 }
 
 async function releaseFunds(orderId) {
-  if (!confirm('Lepaskan dana ke teknisi? Tindakan ini tidak dapat dibatalkan.')) return;
+  if (!(await confirmAction('Lepaskan dana ke teknisi? Tindakan ini tidak dapat dibatalkan.'))) return;
   const res = await fetch(`/api/payment/release/${orderId}`, { method: 'POST' });
   const data = await res.json();
   if (data.success) { showToast('Dana berhasil dilepas ke teknisi!', 'success'); loadOrder(); }

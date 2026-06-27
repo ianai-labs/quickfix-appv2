@@ -116,7 +116,7 @@ function render(o, reviews, actions) {
 }
 
 async function updateStatus(status) {
-  if (status === 'done' && !confirm('Selesaikan pekerjaan ini?')) return;
+  if (status === 'done' && !(await confirmAction('Selesaikan pekerjaan ini?'))) return;
   const res = await api(`/api/orders/${orderId}`, { method: 'PUT', body: JSON.stringify({ status }) });
   const data = await res.json();
   if (data.success) { showToast(data.message, 'success'); loadJob(); }
