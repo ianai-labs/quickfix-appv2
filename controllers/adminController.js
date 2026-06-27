@@ -1,4 +1,5 @@
-const { ServicePricing, User, Technician, Customer } = require('../models');
+const { Op, fn, col } = require('sequelize');
+const { ServicePricing, User, Technician, Customer, Order, Transaction } = require('../models');
 
 // Pricing management
 async function listPricing(req, res, next) {
@@ -37,9 +38,6 @@ async function listUsers(req, res, next) {
 
 async function stats(req, res, next) {
   try {
-    const { Order, Transaction, Technician, User } = require('../models');
-    const { fn, col } = require('sequelize');
-
     const [orderCounts, txnData, techCounts] = await Promise.all([
       Order.findAll({ attributes: ['status', [fn('COUNT', col('id')), 'count']], group: ['status'], raw: true }),
       Transaction.findAll({ attributes: ['status', [fn('SUM', col('amount')), 'total'], [fn('SUM', col('commission')), 'commission']], group: ['status'], raw: true }),
