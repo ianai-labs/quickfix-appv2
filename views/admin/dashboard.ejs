@@ -1,5 +1,16 @@
 <div class="stats-grid" id="statsCards"></div>
 
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+  <div class="card">
+    <div class="card-header"><h2>Distribusi Order</h2></div>
+    <div id="orderChart" style="padding:0.5rem 0"><div class="loading-center"><div class="spinner"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2>Revenue</h2></div>
+    <div id="revenueSummary" style="padding:0.5rem 0"><div class="loading-center"><div class="spinner"></div></div></div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header"><h2>Order Terbaru</h2><a href="/admin/orders" class="btn btn-sm btn-outline">Lihat Semua</a></div>
   <div id="recentOrders"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
@@ -33,6 +44,35 @@ async function loadDashboard() {
     { label: 'Revenue', value: formatIDR(totalRevenue), icon: '💰', color: 'var(--success)', isFormatted: true },
     { label: 'Komisi', value: formatIDR(totalCommission), icon: '📊', color: 'var(--danger)', isFormatted: true },
   ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" ${!s.isFormatted?`style="color:${s.color}"`:''}>${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
+
+  // Order status chart
+  const statusCounts = {}; orders.forEach(o => statusCounts[o.status] = (statusCounts[o.status]||0)+1);
+  const chartColors = { pending:'#6c757d', assigned:'#17a2b8', on_the_way:'#ffc107', in_progress:'#007bff', done:'#28a745', cancelled:'#dc3545' };
+  const chartLabels = { pending:'Pending', assigned:'Assigned', on_the_way:'OTW', in_progress:'Progress', done:'Selesai', cancelled:'Batal' };
+  const maxCount = Math.max(...Object.values(statusCounts), 1);
+  document.getElementById('orderChart').innerHTML = Object.entries(chartLabels).map(([k,v]) => {
+    const count = statusCounts[k] || 0;
+    const pct = Math.round(count / maxCount * 100);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="width:70px;font-size:0.75rem;text-align:right">${v}</span>
+      <div style="flex:1;background:var(--gray-100);border-radius:4px;height:20px;overflow:hidden">
+        <div style="width:${pct}%;background:${chartColors[k]};height:100%;border-radius:4px;transition:width 0.5s"></div>
+      </div>
+      <span style="font-size:0.8rem;font-weight:600;width:30px">${count}</span>
+    </div>`;
+  }).join('');
+
+  // Revenue summary
+  document.getElementById('revenueSummary').innerHTML = `
+    <div style="text-align:center;padding:0.5rem">
+      <div style="font-size:2rem;font-weight:800;color:var(--success)">${formatIDR(totalRevenue)}</div>
+      <div style="color:var(--gray-500);font-size:0.8rem;margin-bottom:0.5rem">Total Revenue</div>
+      <div style="display:flex;justify-content:center;gap:2rem">
+        <div><div style="font-weight:700;color:var(--danger)">${formatIDR(totalCommission)}</div><small style="color:var(--gray-500)">Komisi</small></div>
+        <div><div style="font-weight:700">${formatIDR(totalRevenue - totalCommission)}</div><small style="color:var(--gray-500)">Teknisi</small></div>
+        <div><div style="font-weight:700">${allTxns.filter(t=>t.status==='paid').length}</div><small style="color:var(--gray-500)">Escrow</small></div>
+      </div>
+    </div>`;
 
   document.getElementById('recentOrders').innerHTML = orders.length ? `
     <div class="table-wrap"><table class="table"><thead><tr><th>ID</th><th>Layanan</th><th>Customer</th><th>Teknisi</th><th>Status</th><th>Tgl</th></tr></thead>
