@@ -1,4 +1,4 @@
-const { Order, Customer, Technician } = require('../models');
+const { Order, Customer, Technician, User } = require('../models');
 const { createTransaction, getTransaction, releasePayment: releasePmt, markAsPaid, refundPayment } = require('../services/paymentService');
 const { USER_ROLES } = require('../config/constants');
 
