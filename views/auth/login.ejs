@@ -60,9 +60,9 @@
     <p>Masuk ke akun Anda</p>
 
     <div class="role-tabs" id="roleTabs">
-      <button class="role-tab active" data-role="customer">👤 Pencari Jasa</button>
-      <button class="role-tab" data-role="technician">👨‍🔧 Penyedia Jasa</button>
-      <button class="role-tab" data-role="admin">👑 Admin</button>
+      <button class="role-tab active" data-role="customer" role="tab" aria-selected="true">👤 Pencari Jasa</button>
+      <button class="role-tab" data-role="technician" role="tab" aria-selected="false">👨‍🔧 Penyedia Jasa</button>
+      <button class="role-tab" data-role="admin" role="tab" aria-selected="false">👑 Admin</button>
     </div>
     <p class="role-hint" id="roleHint">Untuk booking & memantau perbaikan</p>
 
@@ -117,8 +117,8 @@
 let currentTempToken = null, selectedRole = 'customer';
 
 document.querySelectorAll('.role-tab').forEach(tab => tab.addEventListener('click', () => {
-  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active'); selectedRole = tab.dataset.role;
+  document.querySelectorAll('.role-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+  tab.classList.add('active'); tab.setAttribute('aria-selected','true'); selectedRole = tab.dataset.role;
   document.getElementById('roleHint').textContent = selectedRole === 'customer' ? 'Untuk booking & memantau perbaikan' : selectedRole === 'technician' ? 'Untuk menerima & mengerjakan order' : 'Untuk mengelola platform';
 }));
 
