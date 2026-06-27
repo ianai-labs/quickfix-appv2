@@ -1,6 +1,6 @@
 <div id="orderDetail"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
 
-<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="SB-Mid-client-dummy"></script>
+<script src="<%= process.env.MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js' %>" data-client-key="<%= process.env.MIDTRANS_CLIENT_KEY || 'SB-Mid-client-dummy' %>"></script>
 <script src="/js/main.js"></script>
 <script>
 const orderId = window.location.pathname.split('/').pop();

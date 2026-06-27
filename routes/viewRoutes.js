@@ -18,6 +18,13 @@ module.exports = function viewRoutes() {
     next();
   }
 
+  function requireRole(...roles) {
+    return (req, res, next) => {
+      if (!roles.includes(req.user?.role)) return res.redirect('/');
+      next();
+    };
+  }
+
   // ── Public (guest only) ──
   router.get('/', guestOnly, (_req, res) => {
     res.render('auth/login', { title: 'Login — Quickfix', user: null, message: null, captcha: null });
@@ -40,11 +47,11 @@ module.exports = function viewRoutes() {
   });
 
   // ── Customer ──
-  router.get('/customer/dashboard', requireAuth, (req, res) => {
+  router.get('/customer/dashboard', requireAuth, requireRole('customer'), (req, res) => {
     res.render('customer/dashboard', { title: 'Dashboard — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
-  router.get('/customer/orders/new', requireAuth, (req, res) => {
+  router.get('/customer/orders/new', requireAuth, requireRole('customer'), (req, res) => {
     res.render('customer/create-order', { title: 'Buat Order — Quickfix', user: req.user, active: 'new-order', message: null });
   });
 
@@ -53,7 +60,7 @@ module.exports = function viewRoutes() {
   });
 
   // ── Technician ──
-  router.get('/technician/dashboard', requireAuth, (req, res) => {
+  router.get('/technician/dashboard', requireAuth, requireRole('technician'), (req, res) => {
     res.render('technician/dashboard', { title: 'Job Queue — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
@@ -70,7 +77,7 @@ module.exports = function viewRoutes() {
   });
 
   // ── Admin ──
-  router.get('/admin/dashboard', requireAuth, (req, res) => {
+  router.get('/admin/dashboard', requireAuth, requireRole('admin'), (req, res) => {
     res.render('admin/dashboard', { title: 'Dashboard Admin — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 

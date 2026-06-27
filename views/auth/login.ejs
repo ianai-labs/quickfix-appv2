@@ -39,10 +39,10 @@
     </div>
 
     <div class="login-demo">
-      <small>Demo — klik langsung masuk</small>
+      <small>🔧 Demo — klik untuk langsung masuk</small>
       <div class="demo-btns">
-        <button class="demo-btn" onclick="quickLogin('budi','admin123','customer')">&#x1F464; Budi</button>
-        <button class="demo-btn" onclick="quickLogin('andi','admin123','technician')">&#x1F468;&#x200D;&#x1F527; Andi</button>
+        <button class="demo-btn" onclick="quickLogin('budi','admin123','customer')">&#x1F464; Budi (Customer)</button>
+        <button class="demo-btn" onclick="quickLogin('andi','admin123','technician')">&#x1F468;&#x200D;&#x1F527; Andi (Teknisi)</button>
         <button class="demo-btn" onclick="quickLogin('admin','admin123','admin')">&#x1F451; Admin</button>
       </div>
     </div>
@@ -59,7 +59,7 @@
       <div class="otp-dummy-code" id="otpDummyCode"></div>
       <div class="otp-dummy-hint">Production: kode dikirim via email (konfigurasi SMTP di <code>.env</code>)</div>
     </div>
-    <p style="color:var(--gray-500);font-size:0.8rem;margin-bottom:1rem">Kode OTP dikirim ke email Anda. Cek juga phpMyAdmin → <code>otp_codes</code>.</p>
+    <p style="color:var(--gray-500);font-size:0.8rem;margin-bottom:1rem">Kode OTP dikirim ke email Anda.</p>
     <div class="form-group">
       <input type="text" id="otpInput" class="form-control" placeholder="6 digit kode OTP" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="text-align:center;font-size:1.2rem;letter-spacing:4px">
     </div>
