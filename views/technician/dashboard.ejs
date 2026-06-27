@@ -37,7 +37,7 @@ async function loadDashboard() {
 
   document.getElementById('pendingOrders').innerHTML = pending.length ? pending.map(o => `
     <div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center">
-      <div><strong>#${o.id} — ${o.layanan}</strong><br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · esc(o.alamat)</small></div>
+      <div><strong>#${o.id} — ${o.layanan}</strong><br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · ${esc(o.alamat)}</small></div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-sm btn-success" onclick="acceptOrder(${o.id})">Terima</button>
         <button class="btn btn-sm btn-outline" onclick="rejectOrder(${o.id})">Tolak</button>
@@ -46,7 +46,7 @@ async function loadDashboard() {
 
   document.getElementById('activeOrders').innerHTML = active.length ? active.map(o => `
     <div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center">
-      <div><strong>#${o.id} — ${o.layanan}</strong> ${statusBadge(o.status)}<br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · esc(o.alamat)</small></div>
+      <div><strong>#${o.id} — ${o.layanan}</strong> ${statusBadge(o.status)}<br><small style="color:var(--gray-500)">${o.customer?.nama || '-'} · ${esc(o.alamat)}</small></div>
       <a href="/technician/jobs/${o.id}" class="btn btn-sm btn-info">Detail</a>
     </div>`).join('') : '<div class="empty-state"><p>Tidak ada order aktif</p></div>';
 }
