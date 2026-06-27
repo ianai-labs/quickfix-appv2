@@ -20,7 +20,7 @@
     <% if (locals.user) { %>
       <% if (user.role === 'technician') { %>
         <div class="sidebar-section">Menu</div>
-        <a href="/technician/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Job Queue</a>
+        <a href="/technician/dashboard" class="sidebar-link <%= active === 'dashboard' ? 'active' : '' %>">📋 Job Queue <span id="jobBadge" style="display:none;background:var(--danger);color:#fff;border-radius:10px;padding:1px 7px;font-size:0.7rem;margin-left:4px">0</span></a>
         <a href="/technician/history" class="sidebar-link <%= active === 'history' ? 'active' : '' %>">📜 Riwayat</a>
         <a href="/technician/profile" class="sidebar-link <%= active === 'profile' ? 'active' : '' %>">👤 Profil Saya</a>
       <% } else if (user.role === 'customer') { %>
@@ -77,6 +77,11 @@
 
 <script src="/js/main.js"></script>
 <script>
+// Load pending job count for technician
+<% if (locals.user && user.role === 'technician') { %>
+(async () => { try { const r=await fetch('/api/orders?status=assigned'); const d=await r.json(); const count=d.data?.pagination?.total_items||0; if(count>0){ const b=document.getElementById('jobBadge'); b.textContent=count; b.style.display='inline'; } } catch(_){} })();
+<% } %>
+
 // Sidebar toggle
 const sb = document.getElementById('sidebar');
 const btn = document.getElementById('sidebarToggle');
