@@ -38,6 +38,35 @@ a{color:var(--info);text-decoration:none;transition:color var(--transition)}
 a:hover{color:var(--primary-hover)}
 img{max-width:100%}
 
+/* ── Landing Page ── */
+.landing-hero{background:linear-gradient(135deg,#0f0f1a 0%,#1a1a35 40%,#16213e 100%);min-height:85vh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.landing-hero::before{content:'';position:absolute;top:-50%;right:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(245,184,0,0.08) 0%,transparent 70%);border-radius:50%}
+.landing-nav{display:flex;justify-content:space-between;align-items:center;padding:1.25rem 2rem;position:relative;z-index:2}
+.landing-logo{color:#fff!important;font-size:1.3rem;font-weight:700;text-decoration:none}
+.landing-hero-content{display:flex;align-items:center;justify-content:space-between;flex:1;padding:2rem;max-width:1200px;margin:0 auto;width:100%;position:relative;z-index:2;gap:3rem}
+.landing-hero-text{flex:1;max-width:580px}
+.landing-hero-text h1{font-size:3rem;font-weight:800;color:#fff;line-height:1.15;margin-bottom:1.25rem}
+.landing-hero-text p{font-size:1.15rem;color:rgba(255,255,255,0.7);line-height:1.7;margin-bottom:2rem}
+.landing-hero-illustration{flex:1;display:flex;align-items:center;justify-content:center}
+.landing-features{padding:5rem 2rem;max-width:1100px;margin:0 auto;text-align:center}
+.landing-features h2{font-size:2rem;font-weight:800;color:var(--dark);margin-bottom:3rem}
+.landing-features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem}
+.landing-feature-card{background:var(--white);border-radius:var(--radius);padding:2rem;box-shadow:var(--shadow-sm);transition:all var(--transition)}
+.landing-feature-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.landing-feature-icon{font-size:2.5rem;margin-bottom:1rem}
+.landing-feature-card h3{font-size:1.15rem;font-weight:700;margin-bottom:0.5rem;color:var(--dark)}
+.landing-feature-card p{color:var(--gray-500);font-size:0.9rem;line-height:1.6}
+.landing-login{display:flex;align-items:center;justify-content:center;padding:4rem 2rem;background:var(--gray-100)}
+
+@media(max-width:768px){
+  .landing-hero-content{flex-direction:column;text-align:center;padding:2rem 1rem}
+  .landing-hero-text h1{font-size:2rem}
+  .landing-hero-text p{font-size:1rem}
+  .landing-hero-illustration{display:none}
+  .landing-features{padding:3rem 1rem}
+  .landing-features h2{font-size:1.5rem}
+}
+
 /* ── Sidebar ── */
 .sidebar-layout{display:flex;min-height:100vh}
 .sidebar{
