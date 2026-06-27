@@ -70,7 +70,7 @@ async function loadDashboard() {
       <div style="display:flex;justify-content:center;gap:2rem">
         <div><div style="font-weight:700;color:var(--danger)">${formatIDR(totalCommission)}</div><small style="color:var(--gray-500)">Komisi</small></div>
         <div><div style="font-weight:700">${formatIDR(totalRevenue - totalCommission)}</div><small style="color:var(--gray-500)">Teknisi</small></div>
-        <div><div style="font-weight:700">${allTxns.filter(t=>t.status==='paid').length}</div><small style="color:var(--gray-500)">Escrow</small></div>
+        <div><div style="font-weight:700">${(stats.txnData||[]).filter(t=>t.status==='paid').reduce((s,t)=>s+Number(t.total||0),0)}</div><small style="color:var(--gray-500)">Escrow</small></div>
       </div>
     </div>`;
 
