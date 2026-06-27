@@ -40,8 +40,19 @@ function deleteCookie(name) { document.cookie = `${name}=;expires=Thu,01 Jan 197
 function formatDate(d) { return new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 function formatIDR(n) { return 'Rp' + Number(n).toLocaleString('id-ID'); }
 
-// ── Confirm ──
-async function confirmAction(msg) { return confirm(msg); }
+// ── Confirm Modal ──
+function confirmAction(msg) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.className = 'otp-overlay';
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `<div class="otp-modal"><h3>${msg}</h3><div style="display:flex;gap:8px;margin-top:1rem"><button class="btn btn-outline" style="flex:1" id="confirmNo">Batal</button><button class="btn btn-primary" style="flex:1" id="confirmYes">Ya, Lanjutkan</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#confirmYes').onclick = () => { overlay.remove(); resolve(true); };
+    overlay.querySelector('#confirmNo').onclick = () => { overlay.remove(); resolve(false); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve(false); } });
+  });
+}
 
 // ── Loading State ──
 function setLoading(btn, text = 'Loading...') { btn.disabled = true; btn.dataset.origText = btn.textContent; btn.innerHTML = '<span class="spinner"></span> ' + text; }
@@ -72,6 +83,16 @@ function renderPagination(pagination, loadFn) {
   if (page < total_pages) html += `<button class="btn btn-sm btn-outline" onclick="${loadFn}(${page+1})">Next →</button>`;
   html += '</div>';
   return html;
+}
+
+// ── Dark Mode Toggle ──
+(function() {
+  const saved = localStorage.getItem('darkMode');
+  if (saved === 'true') document.body.classList.add('dark');
+})();
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  localStorage.setItem('darkMode', document.body.classList.contains('dark'));
 }
 
 // ── Password Toggle ──
