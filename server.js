@@ -85,7 +85,7 @@ app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan.' });
   }
-  res.status(404).render('error', { title: '404', message: 'Halaman tidak ditemukan.' });
+  res.status(404).render('error', { layout: false, title: '404', message: 'Halaman tidak ditemukan.' });
 });
 
 // ── Error Handler ──

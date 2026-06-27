@@ -26,20 +26,23 @@ module.exports = function viewRoutes() {
   }
 
   // ── Public (guest only) ──
+  const noLayout = { layout: false };
+
   router.get('/', guestOnly, (_req, res) => {
-    res.render('auth/login', { title: 'Login — Quickfix', user: null, message: null, captcha: null });
+    res.render('auth/login', { ...noLayout, title: 'Login — Quickfix', user: null, message: null, captcha: null });
   });
 
   router.get('/register', guestOnly, (_req, res) => {
-    res.render('auth/register', { title: 'Register — Quickfix', user: null, message: null });
+    res.render('auth/register', { ...noLayout, title: 'Register — Quickfix', user: null, message: null });
   });
 
   router.get('/forgot-password', guestOnly, (_req, res) => {
-    res.render('auth/forgot-password', { title: 'Lupa Password — Quickfix', user: null, message: null });
+    res.render('auth/forgot-password', { ...noLayout, title: 'Lupa Password — Quickfix', user: null, message: null });
   });
 
   router.get('/reset-password', guestOnly, (req, res) => {
     res.render('auth/reset-password', {
+      ...noLayout,
       title: 'Reset Password — Quickfix',
       user: null, message: null,
       token: req.query.token || '',
