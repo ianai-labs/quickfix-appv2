@@ -1,3 +1,5 @@
+<div class="stats-grid" id="techStats"></div>
+
 <div class="card">
   <div class="card-header">
     <h2>Job Queue</h2>
@@ -32,8 +34,24 @@ async function loadDashboard() {
   }
 
   const orders = ordersData.data.orders || [];
+  const allOrders = ordersData.data?.pagination?.total_items || 0;
   const pending = orders.filter(o => o.status === 'assigned');
   const active = orders.filter(o => ['on_the_way', 'in_progress'].includes(o.status));
+
+  // Stats
+  const doneCount = orders.filter(o => o.status === 'done').length;
+  let totalEarnings = 0;
+  await Promise.all(orders.filter(o => o.status === 'done').slice(0, 10).map(async o => {
+    try { const r = await fetch(`/api/payment/status/${o.id}`); const d = await r.json();
+      if (d.data?.transaction?.net_amount) totalEarnings += Number(d.data.transaction.net_amount); }
+    catch(_) {}
+  }));
+  document.getElementById('techStats').innerHTML = [
+    { label: 'Total Order', value: allOrders, icon: '📋', color: 'var(--info)' },
+    { label: 'Menunggu', value: pending.length, icon: '📥', color: 'var(--warning)' },
+    { label: 'Aktif', value: active.length, icon: '🔧', color: 'var(--primary)' },
+    { label: 'Selesai', value: me?.total_jobs || doneCount, icon: '✅', color: 'var(--success)' },
+  ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" style="color:${s.color}">${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
 
   document.getElementById('pendingOrders').innerHTML = pending.length ? pending.map(o => `
     <div class="card" style="padding:1rem;display:flex;justify-content:space-between;align-items:center">
