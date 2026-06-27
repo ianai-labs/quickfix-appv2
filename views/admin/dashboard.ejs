@@ -8,26 +8,30 @@
 <script src="/js/main.js"></script>
 <script>
 async function loadDashboard() {
-  const [techsRes, ordersRes, txnData] = await Promise.all([
-    fetch('/api/technicians'), fetch('/api/orders?limit=10'),
-    (async () => { const all = await fetch('/api/orders?limit=200'); const o = (await all.json()).data?.orders||[]; const txns=await Promise.all(o.map(o=>fetch(`/api/payment/status/${o.id}`).then(r=>r.json()).catch(()=>({})))); return txns; })()
+  const [techsRes, ordersData] = await Promise.all([
+    fetch('/api/technicians'),
+    (async () => { const r = await fetch('/api/orders?limit=200'); const d = await r.json(); return d; })(),
   ]);
   const techs = (await techsRes.json()).data.technicians;
-  const orders = (await ordersRes.json()).data.orders || [];
-  const allTxns = txnData.map(t => t.data?.transaction).filter(Boolean);
+  const orders = ordersData.data?.orders || [];
+  const totalOrderCount = ordersData.data?.pagination?.total_items || orders.length;
 
-  const totalRevenue = allTxns.filter(t=>t.status==='paid'||t.status==='released').reduce((s,t)=>s+Number(t.amount),0);
-  const totalCommission = allTxns.filter(t=>t.status==='paid'||t.status==='released').reduce((s,t)=>s+Number(t.commission),0);
-  const online = techs.filter(t=>t.status==='online').length;
-  const premium = techs.filter(t=>t.is_premium).length;
+  // Batch payment statuses
+  const txnRes = await Promise.all(orders.slice(0,50).map(o => fetch(`/api/payment/status/${o.id}`).then(r => r.json()).catch(() => ({}))));
+  const allTxns = txnRes.map(t => t.data?.transaction).filter(Boolean);
+
+  const totalRevenue = allTxns.filter(t => t.status === 'paid' || t.status === 'released').reduce((s, t) => s + Number(t.amount), 0);
+  const totalCommission = allTxns.filter(t => t.status === 'paid' || t.status === 'released').reduce((s, t) => s + Number(t.commission), 0);
+  const online = techs.filter(t => t.status === 'online').length;
+  const premium = techs.filter(t => t.is_premium).length;
 
   document.getElementById('statsCards').innerHTML = [
-    { label:'Teknisi', value:techs.length, icon:'👨‍🔧', color:'var(--info)' },
-    { label:'Online', value:online, icon:'🟢', color:'var(--success)' },
-    { label:'Premium', value:premium, icon:'🔥', color:'var(--primary)' },
-    { label:'Total Orders', value:ordersRes.json ? (await (await fetch('/api/orders?limit=1')).json()).data?.pagination?.total_items||0 : 0, icon:'📋', color:'var(--warning)' },
-    { label:'Revenue', value:formatIDR(totalRevenue), icon:'💰', color:'var(--success)', isFormatted:true },
-    { label:'Komisi', value:formatIDR(totalCommission), icon:'📊', color:'var(--danger)', isFormatted:true },
+    { label: 'Teknisi', value: techs.length, icon: '👨‍🔧', color: 'var(--info)' },
+    { label: 'Online', value: online, icon: '🟢', color: 'var(--success)' },
+    { label: 'Premium', value: premium, icon: '🔥', color: 'var(--primary)' },
+    { label: 'Total Orders', value: totalOrderCount, icon: '📋', color: 'var(--warning)' },
+    { label: 'Revenue', value: formatIDR(totalRevenue), icon: '💰', color: 'var(--success)', isFormatted: true },
+    { label: 'Komisi', value: formatIDR(totalCommission), icon: '📊', color: 'var(--danger)', isFormatted: true },
   ].map(s => `<div class="stat-card"><div class="stat-icon">${s.icon}</div><div class="stat-value" ${!s.isFormatted?`style="color:${s.color}"`:''}>${s.value}</div><div class="stat-label">${s.label}</div></div>`).join('');
 
   document.getElementById('recentOrders').innerHTML = orders.length ? `
