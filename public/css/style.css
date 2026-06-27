@@ -77,15 +77,6 @@ body.dark .btn-outline{color:#9ca3af;border-color:#4b5563}
 body.dark .stat-card{background:#1f2937}
 body.dark .stat-label{color:#9ca3af}
 
-@media(max-width:768px){
-  .landing-hero-content{flex-direction:column;text-align:center;padding:2rem 1rem}
-  .landing-hero-text h1{font-size:2rem}
-  .landing-hero-text p{font-size:1rem}
-  .landing-hero-illustration{display:none}
-  .landing-features{padding:3rem 1rem}
-  .landing-features h2{font-size:1.5rem}
-}
-
 /* ── Sidebar ── */
 .sidebar-layout{display:flex;min-height:100vh}
 .sidebar{
@@ -153,6 +144,18 @@ body.dark .stat-label{color:#9ca3af}
   .main-wrap{margin-left:64px}
   .main-content{padding:1rem}
   .topbar{padding:0 1rem}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table{font-size:0.78rem}
+  .table th,.table td{padding:8px 6px;white-space:nowrap}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:0.5rem}
+  .stat-card{padding:1rem}
+  .stat-card .stat-value{font-size:1.3rem}
+  .landing-hero-content{flex-direction:column;text-align:center;padding:2rem 1rem}
+  .landing-hero-text h1{font-size:2rem}
+  .landing-hero-text p{font-size:1rem}
+  .landing-hero-illustration{display:none}
+  .landing-features{padding:3rem 1rem}
+  .landing-features h2{font-size:1.5rem}
 }
 
 /* ── Card ── */
@@ -288,14 +291,3 @@ select.form-control{cursor:pointer}
 .otp-error{color:var(--danger);font-size:0.8rem;margin-top:0.5rem;display:none}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-/* ── Responsive ── */
-@media(max-width:768px){
-  .navbar{padding:0 1rem}
-  .navbar-nav a,.navbar-nav button{padding:6px 10px;font-size:0.8rem}
-  .nav-user{margin-left:8px;padding-left:8px;gap:4px}
-  .main-content{padding-left:1rem;padding-right:1rem}
-  .login-card{padding:1.75rem}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .table{font-size:0.8rem}
-  .table th,.table td{padding:8px 10px}
-}
