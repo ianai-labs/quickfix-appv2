@@ -38,7 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Session + Flash ──
 app.use(session({
-  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'quickfix-session-secret',
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || require('crypto').randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 },

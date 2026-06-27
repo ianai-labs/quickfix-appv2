@@ -55,7 +55,7 @@ module.exports = function viewRoutes() {
     res.render('customer/create-order', { title: 'Buat Order — Quickfix', user: req.user, active: 'new-order', message: null });
   });
 
-  router.get('/customer/orders/:id', requireAuth, (req, res) => {
+  router.get('/customer/orders/:id', requireAuth, requireRole('customer'), (req, res) => {
     res.render('customer/order-detail', { title: 'Detail Order — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
@@ -64,15 +64,15 @@ module.exports = function viewRoutes() {
     res.render('technician/dashboard', { title: 'Job Queue — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
-  router.get('/technician/jobs/:id', requireAuth, (req, res) => {
+  router.get('/technician/jobs/:id', requireAuth, requireRole('technician'), (req, res) => {
     res.render('technician/job-detail', { title: 'Detail Job — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
-  router.get('/technician/profile', requireAuth, (req, res) => {
+  router.get('/technician/profile', requireAuth, requireRole('technician'), (req, res) => {
     res.render('technician/profile', { title: 'Profil Teknisi — Quickfix', user: req.user, active: 'profile', message: null });
   });
 
-  router.get('/customer/profile', requireAuth, (req, res) => {
+  router.get('/customer/profile', requireAuth, requireRole('customer'), (req, res) => {
     res.render('customer/profile', { title: 'Profil Saya — Quickfix', user: req.user, active: 'profile', message: null });
   });
 
@@ -81,19 +81,19 @@ module.exports = function viewRoutes() {
     res.render('admin/dashboard', { title: 'Dashboard Admin — Quickfix', user: req.user, active: 'dashboard', message: null });
   });
 
-  router.get('/admin/orders', requireAuth, (req, res) => {
+  router.get('/admin/orders', requireAuth, requireRole('admin'), (req, res) => {
     res.render('admin/orders', { title: 'Semua Orders — Quickfix', user: req.user, active: 'orders', message: null });
   });
 
-  router.get('/admin/technicians', requireAuth, (req, res) => {
+  router.get('/admin/technicians', requireAuth, requireRole('admin'), (req, res) => {
     res.render('admin/technicians', { title: 'Kelola Teknisi — Quickfix', user: req.user, active: 'technicians', message: null });
   });
 
-  router.get('/admin/users', requireAuth, (req, res) => {
+  router.get('/admin/users', requireAuth, requireRole('admin'), (req, res) => {
     res.render('admin/users', { title: 'Kelola Users — Quickfix', user: req.user, active: 'users', message: null });
   });
 
-  router.get('/admin/pricing', requireAuth, (req, res) => {
+  router.get('/admin/pricing', requireAuth, requireRole('admin'), (req, res) => {
     res.render('admin/pricing', { title: 'Harga Layanan — Quickfix', user: req.user, active: 'pricing', message: null });
   });
 
