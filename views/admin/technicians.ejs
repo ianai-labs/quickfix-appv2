@@ -35,9 +35,8 @@ async function loadTechnicians() {
 }
 
 async function togglePremium(id, current) {
-  const res = await fetch(`/api/technicians/${id}`, {
+  const res = await api(`/api/technicians/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ is_premium: !current }),
   });
   const result = await res.json();
