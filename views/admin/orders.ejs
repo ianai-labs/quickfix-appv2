@@ -17,7 +17,7 @@ async function loadOrders(page = 1) {
   const status = document.getElementById('statusFilter').value;
   const params = new URLSearchParams({ page, limit: 15 }); if (status) params.set('status', status);
   const url = `/api/orders?${params}`;
-  const res = await fetch(url); const data = await res.json();
+  const res = await api(url); const data = await res.json();
   if (!data.success) return;
   const orders = data.data.orders;
   if (!orders.length) { document.getElementById('orderList').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><h3>Belum ada order</h3></div>'; return; }
