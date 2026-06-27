@@ -13,7 +13,13 @@ async function loadProfile() {
   if (!tech) { document.getElementById('profilePage').innerHTML = '<div class="empty-state"><h3>Profil teknisi tidak ditemukan</h3></div>'; return; }
 
   const doneOrders = orders.filter(o => o.status === 'done');
-  const totalEarned = doneOrders.reduce((sum, o) => sum + (o.harga ? Number(o.harga) * 0.85 : 0), 0);
+  // Estimate earnings from transactions table (actual net_amount)
+  let totalEarned = 0;
+  await Promise.all(doneOrders.slice(0, 50).map(async o => {
+    try { const r = await fetch(`/api/payment/status/${o.id}`); const d = await r.json();
+      if (d.data?.transaction?.net_amount) totalEarned += Number(d.data.transaction.net_amount); }
+    catch(_) { if (o.harga) totalEarned += Number(o.harga) * 0.85; }
+  }));
 
   document.getElementById('profilePage').innerHTML = `
     <div class="card">
