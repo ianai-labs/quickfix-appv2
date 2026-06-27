@@ -23,10 +23,18 @@ async function loadUsers() {
         <td><span class="badge ${roleClasses[u.role]||'badge-pending'}">${roleIcons[u.role]||''} ${roleLabels[u.role]||u.role}</span></td>
         <td>${u.Customer?.no_hp ? `📱 ${u.Customer.no_hp}` : u.Customer?.alamat ? `📍 ${u.Customer.alamat.substring(0,30)}...` : '-'}</td>
         <td>${u.is_active ? '✅ Aktif' : '❌ Nonaktif'}</td>
+        <td><button class="btn btn-sm ${u.is_active ? 'btn-outline' : 'btn-success'}" onclick="toggleUser(${u.id})" style="font-size:0.75rem">${u.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button></td>
         <td>${formatDate(u.created_at)}</td>
       </tr>
     `).join('')}</tbody></table></div>
     <p style="text-align:center;color:var(--gray-500);margin-top:8px">Total: ${users.length} customer</p>`;
+}
+
+async function toggleUser(id) {
+  const res = await api(`/api/admin/users/${id}/toggle`, { method: 'PUT' });
+  const data = await res.json();
+  if (data.success) { showToast(data.message, 'success'); loadUsers(); }
+  else showToast(data.message, 'error');
 }
 
 loadUsers();

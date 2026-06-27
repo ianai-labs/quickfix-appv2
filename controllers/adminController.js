@@ -51,4 +51,14 @@ async function stats(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { listPricing, updatePricing, listUsers, stats };
+async function toggleUser(req, res, next) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
+    user.is_active = !user.is_active;
+    await user.save();
+    res.json({ success: true, message: `User ${user.is_active ? 'diaktifkan' : 'dinonaktifkan'}.`, data: { is_active: user.is_active } });
+  } catch (error) { next(error); }
+}
+
+module.exports = { listPricing, updatePricing, listUsers, stats, toggleUser };

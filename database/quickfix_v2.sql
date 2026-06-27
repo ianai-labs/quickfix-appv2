@@ -143,6 +143,10 @@ INSERT INTO technicians (user_id, spesialisasi, rating, is_premium, status, no_h
 (5, 'Pipa,Atap', 4.5, 0, 'online', '081244445555'),
 (6, 'AC,Pipa', 3.0, 0, 'online', '081255556666');
 
+-- Service pricing seed
+INSERT INTO service_pricing (service_name, base_price, commission_rate) VALUES
+('Perbaikan AC', 250000, 0.15), ('Instalasi Listrik', 200000, 0.12), ('Perbaikan Pipa', 180000, 0.12), ('Perbaikan Atap', 350000, 0.15), ('Lainnya', 150000, 0.10);
+
 -- Generate transactions for done orders (for demo data)
 INSERT INTO transactions (order_id, amount, commission, net_amount, status, payment_method, paid_at, created_at, updated_at)
 SELECT o.id, COALESCE(o.harga, 200000), ROUND(COALESCE(o.harga, 200000)*0.15), COALESCE(o.harga, 200000)-ROUND(COALESCE(o.harga, 200000)*0.15), 'released', 'demo', o.updated_at, o.created_at, o.updated_at
