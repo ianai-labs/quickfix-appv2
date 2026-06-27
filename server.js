@@ -48,7 +48,7 @@ app.use(flash());
 // ── Rate Limiting (API only) ──
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: process.env.NODE_ENV === 'development' ? 2000 : 200,
   message: { success: false, message: 'Terlalu banyak request. Coba lagi nanti.' },
 }));
 
