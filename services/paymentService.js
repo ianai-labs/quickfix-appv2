@@ -2,6 +2,10 @@ const { snap } = require('../config/midtrans');
 const { Transaction, Order, ServicePricing } = require('../models');
 
 async function createTransaction(order, customer) {
+  // Idempotency: prevent duplicate transactions
+  const existing = await Transaction.findOne({ where: { order_id: order.id } });
+  if (existing) return { transaction: existing, snapToken: existing.midtrans_token, amount: parseFloat(existing.amount), commission: parseFloat(existing.commission), netAmount: parseFloat(existing.net_amount), midtransError: null };
+
   const pricing = await ServicePricing.findOne({ where: { service_name: order.layanan, is_active: true } });
   const basePrice = pricing ? parseFloat(pricing.base_price) : 100000;
   const commissionRate = pricing ? parseFloat(pricing.commission_rate) : 0.10;

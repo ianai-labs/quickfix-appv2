@@ -37,7 +37,13 @@
 
 <script src="/js/main.js"></script>
 <script>
-const pricing = { 'Perbaikan AC':250000, 'Instalasi Listrik':200000, 'Perbaikan Pipa':180000, 'Perbaikan Atap':350000, 'Lainnya':150000 };
+// Load pricing from API
+const pricing = {};
+(async () => {
+  try { const res = await fetch('/api/admin/pricing'); const data = await res.json();
+    data.data?.pricing?.forEach(p => pricing[p.service_name] = Number(p.base_price)); }
+  catch(_) { Object.assign(pricing, { 'Perbaikan AC':250000, 'Instalasi Listrik':200000, 'Perbaikan Pipa':180000, 'Perbaikan Atap':350000, 'Lainnya':150000 }); }
+})();
 document.querySelector('[name="layanan"]').addEventListener('change', function(){
   const p = pricing[this.value]; const el = document.getElementById('priceEstimate');
   if(p){ el.style.display='block'; document.getElementById('estPrice').textContent = formatIDR(p); }
