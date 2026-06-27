@@ -1,5 +1,6 @@
-const { Order, Customer, User } = require('../models');
-const { createTransaction, getTransaction, releasePayment: releasePmt } = require('../services/paymentService');
+const { Order, Customer, Technician } = require('../models');
+const { createTransaction, getTransaction, releasePayment: releasePmt, markAsPaid, refundPayment } = require('../services/paymentService');
+const { USER_ROLES } = require('../config/constants');
 
 async function checkout(req, res, next) {
   try {
@@ -37,8 +38,9 @@ async function status(req, res, next) {
     const txn = await getTransaction(req.params.id);
     if (!txn) return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan.' });
     // Only return non-sensitive fields for non-owner
-    const isOwner = req.user.user_id === (await require('../models').Order.findByPk(txn.order_id, { include: [{ model: require('../models').Customer, attributes: ['user_id'] }] }))?.Customer?.user_id;
-    const isAdmin = req.user.role === 'admin';
+    const order = await Order.findByPk(txn.order_id, { include: [{ model: Customer, attributes: ['user_id'] }] });
+    const isOwner = order?.Customer?.user_id === req.user.user_id;
+    const isAdmin = req.user.role === USER_ROLES.ADMIN;
     res.json({ success: true, data: { transaction: { id: txn.id, order_id: txn.order_id, amount: txn.amount, status: txn.status, payment_method: txn.payment_method, ...(isOwner || isAdmin ? { commission: txn.commission, net_amount: txn.net_amount, midtrans_id: txn.midtrans_id, paid_at: txn.paid_at, released_at: txn.released_at } : {}) } } });
   } catch (error) { next(error); }
 }
@@ -64,9 +66,9 @@ async function webhook(req, res, next) {
 
     if (transaction_status === 'settlement' || transaction_status === 'capture') {
       const channel = payment_type === 'bank_transfer' ? (va_numbers?.[0]?.bank || bank || 'bank_transfer') : payment_type;
-      await require('../services/paymentService').markAsPaid(orderId, payment_type, channel || payment_type);
+      await markAsPaid(orderId, payment_type, channel || payment_type);
     } else if (['cancel', 'deny', 'expire'].includes(transaction_status)) {
-      await require('../services/paymentService').refundPayment(orderId);
+      await refundPayment(orderId);
     }
 
     res.status(200).json({ status: 'ok' });
