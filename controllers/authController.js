@@ -489,4 +489,24 @@ async function changePassword(req, res, next) {
   } catch (error) { next(error); }
 }
 
-module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout, changePassword };
+async function refreshToken(req, res, next) {
+  try {
+    const refresh = req.cookies?.refreshToken;
+    if (!refresh) return res.status(401).json({ success: false, message: 'Refresh token tidak ditemukan.', code: 'NO_REFRESH' });
+
+    let decoded;
+    try { decoded = jwt.verify(refresh, process.env.JWT_REFRESH_SECRET); }
+    catch (_e) { return res.status(401).json({ success: false, message: 'Refresh token kadaluarsa.', code: 'REFRESH_EXPIRED' }); }
+
+    const user = await User.findByPk(decoded.user_id);
+    if (!user || !user.is_active) return res.status(401).json({ success: false, message: 'User tidak ditemukan.' });
+
+    const accessToken = generateToken(user);
+    const newRefresh = generateRefreshToken(user);
+    setTokenCookies(res, accessToken, newRefresh);
+
+    res.json({ success: true, message: 'Token diperbarui.', data: { token: accessToken } });
+  } catch (error) { next(error); }
+}
+
+module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout, changePassword, refreshToken };

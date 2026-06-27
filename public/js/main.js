@@ -26,7 +26,20 @@ async function api(url, options = {}) {
 
   const res = await fetch(url, { ...options, headers });
   if (res.status === 401) {
-    try { const d = await res.json(); if (d.code === 'TOKEN_EXPIRED') { showToast('Sesi berakhir. Silakan login kembali.', 'error'); setTimeout(() => window.location.href = '/', 1500); } } catch (_) {}
+    try { const d = await res.json();
+      if (d.code === 'TOKEN_EXPIRED') {
+        // Try refresh
+        const refRes = await fetch('/api/auth/refresh', { method: 'POST' });
+        const refData = await refRes.json();
+        if (refData.success && refData.data.token) {
+          // Retry original request with new token
+          headers['Authorization'] = `Bearer ${refData.data.token}`;
+          return fetch(url, { ...options, headers });
+        }
+        showToast('Sesi berakhir. Silakan login kembali.', 'error');
+        setTimeout(() => window.location.href = '/', 1500);
+      }
+    } catch (_) {}
   }
   return res;
 }
