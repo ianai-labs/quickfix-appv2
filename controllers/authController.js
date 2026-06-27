@@ -472,4 +472,21 @@ async function logout(req, res) {
   return res.redirect('/');
 }
 
-module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout };
+async function changePassword(req, res, next) {
+  try {
+    const { current_password, new_password, new_password_confirm } = req.body;
+    if (!current_password || !new_password) return res.status(400).json({ success: false, message: 'Password lama dan baru wajib diisi.' });
+    if (new_password.length < MIN_PASSWORD_LENGTH) return res.status(400).json({ success: false, message: `Password minimal ${MIN_PASSWORD_LENGTH} karakter.` });
+    if (new_password !== new_password_confirm) return res.status(400).json({ success: false, message: 'Password baru tidak cocok.' });
+
+    const user = await User.findByPk(req.user.user_id);
+    const valid = await bcrypt.compare(current_password, user.password);
+    if (!valid) return res.status(400).json({ success: false, message: 'Password lama salah.' });
+
+    user.password = await bcrypt.hash(new_password, BCRYPT_SALT_ROUNDS);
+    await user.save();
+    res.json({ success: true, message: 'Password berhasil diubah.' });
+  } catch (error) { next(error); }
+}
+
+module.exports = { register, login, forgotPassword, resetPassword, verifyDevice, me, logout, changePassword };

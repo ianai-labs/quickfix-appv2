@@ -41,7 +41,25 @@ async function loadProfile() {
         </div>
         <button type="submit" class="btn btn-primary">Simpan Profil</button>
       </form>
+
+      <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
+      <form id="pwForm" style="margin-top:0.5rem">
+        <div class="form-group"><input type="password" name="current_password" class="form-control" placeholder="Password lama" required></div>
+        <div class="form-group"><input type="password" name="new_password" class="form-control" placeholder="Password baru (min 6)" required minlength="6"></div>
+        <div class="form-group"><input type="password" name="new_password_confirm" class="form-control" placeholder="Konfirmasi password baru" required></div>
+        <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
+      </form>
     </div>`;
+
+  document.getElementById('pwForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target));
+    if (data.new_password !== data.new_password_confirm) { showToast('Password tidak cocok', 'error'); return; }
+    const res = await api('/api/auth/change-password', { method: 'PUT', body: JSON.stringify(data) });
+    const result = await res.json();
+    showToast(result.message, result.success ? 'success' : 'error');
+    if (result.success) e.target.reset();
+  });
 
   document.getElementById('profileForm').addEventListener('submit', async e => {
     e.preventDefault();

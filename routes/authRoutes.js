@@ -37,6 +37,7 @@ router.post('/verify-device', ctrl.verifyDevice);
 
 // ── Protected ──
 router.get('/me', auth, ctrl.me);
+router.put('/change-password', auth, ctrl.changePassword);
 router.get('/logout', ctrl.logout);
 router.post('/logout', auth, ctrl.logout);
 
