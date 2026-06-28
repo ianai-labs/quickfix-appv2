@@ -22,3 +22,11 @@ mysql_data/
 # Uploads (produksi)
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Zone identifier files (Windows)
+*:Zone.Identifier
+
+# AI agent routing (not part of the project)
+AGENTS.md
+AGENTS.id
+CLAUDE.md

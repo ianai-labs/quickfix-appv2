@@ -32,6 +32,8 @@ module.exports = function viewRoutes() {
     res.render('auth/login', { ...noLayout, title: 'Login — Quickfix', user: null, message: null, captcha: null });
   });
 
+  router.get('/login', (_req, res) => res.redirect('/'));
+
   router.get('/register', guestOnly, (_req, res) => {
     res.render('auth/register', { ...noLayout, title: 'Register — Quickfix', user: null, message: null });
   });
