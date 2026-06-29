@@ -1,12 +1,36 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASS,
-  {
+// Railway / Render / Heroku inject DATABASE_URL
+// Format: mysql://user:password@host:port/database
+let dbConfig;
+
+if (process.env.DATABASE_URL) {
+  const url = new URL(process.env.DATABASE_URL);
+  dbConfig = {
+    database: url.pathname.replace('/', ''),
+    username: url.username,
+    password: url.password,
+    host: url.hostname,
+    port: parseInt(url.port, 10) || 3306,
+  };
+  console.log('📦 Using DATABASE_URL →', url.hostname);
+} else {
+  dbConfig = {
+    database: process.env.DB_NAME,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
     host: process.env.DB_HOST || 'mysql',
     port: parseInt(process.env.DB_PORT, 10) || 3306,
+  };
+}
+
+const sequelize = new Sequelize(
+  dbConfig.database,
+  dbConfig.username,
+  dbConfig.password,
+  {
+    host: dbConfig.host,
+    port: dbConfig.port,
     dialect: 'mysql',
     logging: process.env.NODE_ENV === 'development' ? console.log : false,
     pool: {

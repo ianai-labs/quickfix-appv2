@@ -96,7 +96,8 @@ async function start() {
   try {
     await connectWithRetry();
 
-    if (process.env.NODE_ENV === 'development') {
+    // Sync schema — auto-create tables if not exist (safe: uses CREATE IF NOT EXISTS)
+    if (process.env.DB_SYNC !== 'false') {
       await sequelize.sync();
       console.log('✅ Database synced');
     }
