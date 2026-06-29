@@ -1,0 +1,68 @@
+# Render Blueprint — Quickfix App v2
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ── Web Service (Node.js app) ──
+  - type: web
+    name: quickfix-appv2
+    runtime: docker
+    repo: https://github.com/ianai-labs/quickfix-appv2
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+
+      # Database — isi dari Aiven/PlanetScale setelah dibuat
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+
+      # JWT
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+
+      # Session
+      - key: SESSION_SECRET
+        generateValue: true
+
+      # Device tracking
+      - key: DEVICE_SECRET
+        generateValue: true
+
+      # Cloudinary (opsional — app tetap jalan tanpa ini)
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+
+      # SMTP Email (opsional)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: BASE_URL
+        sync: false

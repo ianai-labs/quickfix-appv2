@@ -1,14 +1,14 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Install nodemon globally for hot-reload
+# Install nodemon for development hot-reload
 RUN npm install -g nodemon
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (termasuk devDependencies untuk ESLint CI)
 RUN npm install
 
 # Copy application source
@@ -17,5 +17,5 @@ COPY . .
 # Expose application port
 EXPOSE 3000
 
-# Start with nodemon for development
-CMD ["npx", "nodemon", "server.js"]
+# Production: node server.js | Development: docker compose override ke nodemon
+CMD ["node", "server.js"]
