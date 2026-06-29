@@ -67,6 +67,27 @@ app.get('/health', (_req, res) => {
   res.json({ success: true, message: 'Quickfix App v2 running', timestamp: new Date().toISOString() });
 });
 
+// ── Diagnostic: cek demo data ──
+app.get('/debug/check', async (_req, res) => {
+  try {
+    const { User, Technician, Customer, ServicePricing } = require('./models');
+    const [userCount, techCount, custCount, pricingCount] = await Promise.all([
+      User.count(), Technician.count(), Customer.count(), ServicePricing.count()
+    ]);
+    const admin = await User.findOne({ where: { username: 'admin' }, attributes: ['id', 'username', 'role'] });
+    res.json({
+      success: true,
+      counts: { users: userCount, technicians: techCount, customers: custCount, pricing: pricingCount },
+      admin_exists: !!admin,
+      demo_ready: userCount >= 6 && pricingCount >= 5,
+      env: process.env.NODE_ENV || 'development',
+      demo_mode: process.env.NODE_ENV === 'development' || process.env.DEMO_MODE === 'true' || (!process.env.SMTP_USER || !process.env.SMTP_PASS)
+    });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ── API Routes ──
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
@@ -101,14 +122,18 @@ async function start() {
 
     await connectWithRetry(10, 5000);  // 10 retries x 5 detik = max 50 detik
 
-    // Sync schema — auto-create tables if not exist (safe: uses CREATE IF NOT EXISTS)
+    // Sync schema — auto-create tables if not exist
     if (process.env.DB_SYNC !== 'false') {
       await sequelize.sync();
       console.log('✅ Database synced');
 
-      // Auto-seed demo data on first deploy (safe: idempotent)
-      const seed = require('./config/seed');
-      await seed(sequelize);
+      // Auto-seed demo data (safe: idempotent, won't duplicate)
+      try {
+        const seed = require('./config/seed');
+        await seed(sequelize);
+      } catch (err) {
+        console.error('⚠️ Seed warning (app tetap jalan):', err.message);
+      }
     }
 
     app.listen(PORT, () => {
