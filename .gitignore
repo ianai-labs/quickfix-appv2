@@ -26,6 +26,10 @@ public/uploads/*
 # Zone identifier files (Windows)
 *:Zone.Identifier
 
+# Laporan (local only, tidak di-commit)
+LAPORAN.md
+LAPORAN.pdf
+
 # AI agent routing (not part of the project)
 AGENTS.md
 AGENTS.id

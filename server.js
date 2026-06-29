@@ -105,6 +105,10 @@ async function start() {
     if (process.env.DB_SYNC !== 'false') {
       await sequelize.sync();
       console.log('✅ Database synced');
+
+      // Auto-seed demo data on first deploy (safe: idempotent)
+      const seed = require('./config/seed');
+      await seed(sequelize);
     }
 
     app.listen(PORT, () => {
