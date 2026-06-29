@@ -238,8 +238,11 @@ async function login(req, res, next) {
       { expiresIn: '10m' }
     );
 
-    // Dev mode: include raw OTP code
-    let devOtpCode = process.env.NODE_ENV === 'development' ? otpResult._code : null;
+    // Show OTP in response if: dev mode, demo mode, or SMTP not configured
+    const isDemo = process.env.NODE_ENV === 'development'
+      || process.env.DEMO_MODE === 'true'
+      || (!process.env.SMTP_USER || !process.env.SMTP_PASS);
+    let devOtpCode = isDemo ? otpResult._code : null;
 
     return res.json({
       success: true,
