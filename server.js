@@ -94,7 +94,12 @@ app.use(errorHandler);
 // ── Start ──
 async function start() {
   try {
-    await connectWithRetry();
+    // Kasih waktu MySQL Railway buat startup (cold start bisa ~30 detik)
+    const startupDelay = parseInt(process.env.STARTUP_DELAY_MS, 10) || 5000;
+    console.log(`⏳ Waiting ${startupDelay / 1000}s for database to be ready...`);
+    await new Promise(r => setTimeout(r, startupDelay));
+
+    await connectWithRetry(10, 5000);  // 10 retries x 5 detik = max 50 detik
 
     // Sync schema — auto-create tables if not exist (safe: uses CREATE IF NOT EXISTS)
     if (process.env.DB_SYNC !== 'false') {
