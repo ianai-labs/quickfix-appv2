@@ -82,9 +82,9 @@
     <div class="login-demo">
       <small>Demo — klik langsung masuk</small>
       <div class="demo-btns">
-        <button class="demo-btn" onclick="quickLogin('budi','admin123','customer')">👤 Budi (Customer)</button>
-        <button class="demo-btn" onclick="quickLogin('andi','admin123','technician')">👨‍🔧 Andi (Teknisi)</button>
-        <button class="demo-btn" onclick="quickLogin('admin','admin123','admin')">👑 Admin</button>
+        <button type="button" class="demo-btn" onclick="quickLogin('budi','admin123','customer')">👤 Budi (Customer)</button>
+        <button type="button" class="demo-btn" onclick="quickLogin('andi','admin123','technician')">👨‍🔧 Andi (Teknisi)</button>
+        <button type="button" class="demo-btn" onclick="quickLogin('admin','admin123','admin')">👑 Admin</button>
       </div>
     </div>
   </div>
@@ -114,47 +114,79 @@
 
 <script src="/js/main.js"></script>
 <script>
+// ── Fallback helpers (jaga-jaga kalau main.js gagal load) ──
+if (typeof showToast === 'undefined') { window.showToast = function(msg,type){ alert((type==='error'?'❌':'✅')+' '+msg); }; }
+if (typeof setLoading === 'undefined') { window.setLoading = function(btn,text){ btn.disabled=true; btn.dataset.origText=btn.textContent; btn.innerHTML='<span class="spinner"></span> '+text; }; }
+if (typeof resetLoading === 'undefined') { window.resetLoading = function(btn){ btn.disabled=false; btn.textContent=btn.dataset.origText||'Masuk'; }; }
+if (typeof clearErrors === 'undefined') { window.clearErrors = function(){}; }
+
 let currentTempToken = null, selectedRole = 'customer';
 
+// ── Role tabs ──
 document.querySelectorAll('.role-tab').forEach(tab => tab.addEventListener('click', () => {
   document.querySelectorAll('.role-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
   tab.classList.add('active'); tab.setAttribute('aria-selected','true'); selectedRole = tab.dataset.role;
   document.getElementById('roleHint').textContent = selectedRole === 'customer' ? 'Untuk booking & memantau perbaikan' : selectedRole === 'technician' ? 'Untuk menerima & mengerjakan order' : 'Untuk mengelola platform';
 }));
 
-async function quickLogin(u,p,r) {
-  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-role="${r}"]`).classList.add('active');
-  selectedRole = r;
-  document.querySelector('[name="login"]').value = u;
-  document.querySelector('[name="password"]').value = p;
-  document.getElementById('loginForm').dispatchEvent(new Event('submit'));
-}
-
-document.getElementById('loginForm').addEventListener('submit', async e => {
-  e.preventDefault(); const btn = document.getElementById('loginBtn');
-  setLoading(btn, 'Masuk...'); clearErrors();
-  const data = Object.fromEntries(new FormData(e.target));
-  if (!data.login || !data.password) { showToast('Isi username/email dan password', 'error'); resetLoading(btn); return; }
-
+// ── Shared login function ──
+async function doLogin(loginData) {
+  const btn = document.getElementById('loginBtn');
+  setLoading(btn, 'Masuk...');
   try {
-    const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(loginData) });
     const result = await res.json();
-    if (result.success && result.data.require_otp) {
+
+    if (result.success && result.data && result.data.require_otp) {
+      // Device baru — tampilkan OTP modal
       currentTempToken = result.data.temp_token;
       document.getElementById('otpInput').value = '';
       document.getElementById('otpError').style.display = 'none';
-      if (result.data.dev_otp) { document.getElementById('otpDummy').style.display='block'; document.getElementById('otpDummyCode').textContent=result.data.dev_otp; }
-      else document.getElementById('otpDummy').style.display='none';
-      document.getElementById('otpOverlay').style.display='flex'; document.getElementById('otpInput').focus();
-    } else if (result.success) {
+      if (result.data.dev_otp) {
+        document.getElementById('otpDummy').style.display = 'block';
+        document.getElementById('otpDummyCode').textContent = result.data.dev_otp;
+      } else {
+        document.getElementById('otpDummy').style.display = 'none';
+      }
+      document.getElementById('otpOverlay').style.display = 'flex';
+      document.getElementById('otpInput').focus();
+      resetLoading(btn);
+    } else if (result.success && result.data && result.data.token) {
+      // Device dikenal — redirect langsung
       const ur = result.data.user.role;
-      if (selectedRole !== 'admin' && selectedRole !== ur && !(selectedRole === 'technician' && ur === 'admin')) { showToast('Role tidak sesuai. Pilih tab yang benar.','error'); resetLoading(btn); return; }
-      window.location.href = {admin:'/admin/dashboard',technician:'/technician/dashboard',customer:'/customer/dashboard'}[ur]||'/';
-    } else showToast(result.message,'error');
-  } catch(_) { showToast('Gagal terhubung ke server','error'); }
-  resetLoading(btn);
+      const dash = {admin:'/admin/dashboard',technician:'/technician/dashboard',customer:'/customer/dashboard'};
+      window.location.href = dash[ur] || '/';
+    } else {
+      showToast(result.message || 'Login gagal', 'error');
+      resetLoading(btn);
+    }
+  } catch (_) {
+    showToast('Gagal terhubung ke server', 'error');
+    resetLoading(btn);
+  }
+}
+
+// ── Form submit handler ──
+document.getElementById('loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  if (!data.login || !data.password) { showToast('Isi username/email dan password', 'error'); return; }
+  await doLogin(data);
 });
+
+// ── Demo quick login ──
+function quickLogin(u, p, r) {
+  // Update role tabs
+  document.querySelectorAll('.role-tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected','false'); });
+  var tab = document.querySelector('[data-role="'+r+'"]');
+  if (tab) { tab.classList.add('active'); tab.setAttribute('aria-selected','true'); }
+  selectedRole = r;
+  // Isi form
+  document.querySelector('[name="login"]').value = u;
+  document.querySelector('[name="password"]').value = p;
+  // Panggil langsung
+  doLogin({ login: u, password: p });
+}
 
 document.getElementById('otpSubmit').addEventListener('click', async () => {
   const code = document.getElementById('otpInput').value.trim();
