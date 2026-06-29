@@ -1,81 +1,116 @@
 <div id="profilePage"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
 
-<script src="/js/main.js"></script>
 <script>
-async function loadProfile() {
-  const [meRes, techsRes, ordersRes] = await Promise.all([
-    fetch('/api/auth/me'), fetch('/api/technicians'), fetch('/api/orders?limit=100')
-  ]);
-  const me = (await meRes.json()).data.user;
-  const techs = (await techsRes.json()).data.technicians;
-  const orders = (await ordersRes.json()).data.orders || [];
-  const tech = techs.find(t => t.user_id === me.id);
-  if (!tech) { document.getElementById('profilePage').innerHTML = '<div class="empty-state"><h3>Profil teknisi tidak ditemukan</h3></div>'; return; }
-
-  const doneOrders = orders.filter(o => o.status === 'done');
-  // Estimate earnings from transactions table (actual net_amount)
-  let totalEarned = 0;
-  await Promise.all(doneOrders.slice(0, 50).map(async o => {
-    try { const r = await fetch(`/api/payment/status/${o.id}`); const d = await r.json();
-      if (d.data?.transaction?.net_amount) totalEarned += Number(d.data.transaction.net_amount); }
-    catch(_) { if (o.harga) totalEarned += Number(o.harga) * 0.85; }
-  }));
-
-  document.getElementById('profilePage').innerHTML = `
-    <div class="card">
-      <div class="card-header"><h2>Profil Teknisi</h2>${tech.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : ''}</div>
-
-      <div class="stats-grid" style="margin-bottom:1.5rem">
-        <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${tech.rating}</div><div class="stat-label">Rating</div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${tech.total_jobs}</div><div class="stat-label">Job Selesai</div></div>
-        <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${formatIDR(totalEarned)}</div><div class="stat-label">Estimasi Pendapatan</div></div>
-        <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-value" style="text-transform:capitalize">${tech.status}</div><div class="stat-label">Status</div></div>
-      </div>
-
-      ${tech.spesialisasi === '(isi nanti)' || !tech.spesialisasi ? `
-        <div class="alert alert-danger">⚠️ Spesialisasi belum diisi! Lengkapi profil Anda agar bisa menerima order yang sesuai.</div>
-      ` : ''}
-
-      <form id="profileForm">
-        <div class="form-group">
-          <label>Spesialisasi (pisahkan dengan koma)</label>
-          <input type="text" name="spesialisasi" class="form-control" value="${tech.spesialisasi === '(isi nanti)' ? '' : tech.spesialisasi}" placeholder="contoh: AC, Listrik, Pipa">
-        </div>
-        <div class="form-group">
-          <label>Nomor HP</label>
-          <input type="text" name="no_hp" class="form-control" value="${tech.no_hp || ''}" placeholder="0812xxxx">
-        </div>
-        <button type="submit" class="btn btn-primary">Simpan Profil</button>
-      </form>
-
-      <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
-      <form id="pwForm" style="margin-top:0.5rem">
-        <div class="form-group"><input type="password" name="current_password" class="form-control" placeholder="Password lama" required></div>
-        <div class="form-group"><input type="password" name="new_password" class="form-control" placeholder="Password baru (min 6)" required minlength="6"></div>
-        <div class="form-group"><input type="password" name="new_password_confirm" class="form-control" placeholder="Konfirmasi password baru" required></div>
-        <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
-      </form>
-    </div>`;
-
-  document.getElementById('pwForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    if (data.new_password !== data.new_password_confirm) { showToast('Password tidak cocok', 'error'); return; }
-    const res = await api('/api/auth/change-password', { method: 'PUT', body: JSON.stringify(data) });
-    const result = await res.json();
-    showToast(result.message, result.success ? 'success' : 'error');
-    if (result.success) e.target.reset();
-  });
-
-  document.getElementById('profileForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    const res = await api(`/api/technicians/${tech.id}`, { method: 'PUT', body: JSON.stringify(data) });
-    const result = await res.json();
-    if (result.success) { showToast('Profil disimpan!', 'success'); loadProfile(); }
-    else showToast(result.message, 'error');
-  });
+if (typeof showToast === 'undefined') { window.showToast = function(msg, type) { alert((type==='error'?'❌ ':'✅ ') + msg); }; }
+if (typeof formatDate === 'undefined') { window.formatDate = function(d) { return d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '-'; }; }
+if (typeof formatIDR === 'undefined') { window.formatIDR = function(n) { return 'Rp' + Number(n).toLocaleString('id-ID'); }; }
+if (typeof api === 'undefined') {
+  window.api = async function(url, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    return fetch(url, { ...options, headers, credentials: 'same-origin' });
+  };
 }
 
-loadProfile();
+async function loadProfile() {
+  try {
+    const [meRes, techsRes, ordersRes] = await Promise.all([
+      fetch('/api/auth/me', { credentials: 'same-origin' }),
+      fetch('/api/technicians', { credentials: 'same-origin' }),
+      fetch('/api/orders?limit=100', { credentials: 'same-origin' })
+    ]);
+
+    if (!meRes.ok) throw new Error('Gagal memuat data user (HTTP '+meRes.status+')');
+    const meData = await meRes.json();
+    if (!meData.success || !meData.data?.user) throw new Error('Data user tidak valid');
+    const me = meData.data.user;
+
+    const techsData = await techsRes.json();
+    const techs = techsData.data?.technicians || [];
+    const ordersData = await ordersRes.json();
+    const orders = ordersData.data?.orders || [];
+
+    const tech = techs.find(t => t.user_id === me.id);
+    if (!tech) {
+      document.getElementById('profilePage').innerHTML = '<div class="card" style="text-align:center;padding:2rem"><h3>Profil teknisi tidak ditemukan</h3><p style="color:var(--gray-500)">Hubungi admin untuk membuat profil teknisi.</p></div>';
+      return;
+    }
+
+    const doneOrders = orders.filter(o => o.status === 'done');
+    let totalEarned = 0;
+    await Promise.all(doneOrders.slice(0, 50).map(async o => {
+      try {
+        const r = await fetch('/api/payment/status/' + o.id, { credentials: 'same-origin' });
+        const d = await r.json();
+        if (d.data?.transaction?.net_amount) totalEarned += Number(d.data.transaction.net_amount);
+      } catch(_) { if (o.harga) totalEarned += Number(o.harga) * 0.85; }
+    }));
+
+    document.getElementById('profilePage').innerHTML = `
+      <div class="card">
+        <div class="card-header"><h2>Profil Teknisi</h2>${tech.is_premium ? '<span class="badge badge-premium">🔥 Premium</span>' : ''}</div>
+
+        <div class="stats-grid" style="margin-bottom:1.5rem">
+          <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">${tech.rating || 0}</div><div class="stat-label">Rating</div></div>
+          <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${tech.total_jobs || 0}</div><div class="stat-label">Job Selesai</div></div>
+          <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${formatIDR(totalEarned)}</div><div class="stat-label">Estimasi Pendapatan</div></div>
+          <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-value" style="text-transform:capitalize">${tech.status || 'aktif'}</div><div class="stat-label">Status</div></div>
+        </div>
+
+        ${tech.spesialisasi === '(isi nanti)' || !tech.spesialisasi ? '<div class="alert alert-danger">⚠️ Spesialisasi belum diisi! Lengkapi profil Anda agar bisa menerima order yang sesuai.</div>' : ''}
+
+        <form id="profileForm">
+          <div class="form-group">
+            <label>Spesialisasi (pisahkan dengan koma)</label>
+            <input type="text" name="spesialisasi" class="form-control" value="${tech.spesialisasi === '(isi nanti)' ? '' : esc(tech.spesialisasi || '')}" placeholder="contoh: AC, Listrik, Pipa">
+          </div>
+          <div class="form-group">
+            <label>Nomor HP</label>
+            <input type="text" name="no_hp" class="form-control" value="${esc(tech.no_hp || '')}" placeholder="0812xxxx">
+          </div>
+          <button type="submit" class="btn btn-primary">Simpan Profil</button>
+        </form>
+
+        <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
+        <form id="pwForm" style="margin-top:0.5rem">
+          <div class="form-group"><input type="password" name="current_password" class="form-control" placeholder="Password lama" required></div>
+          <div class="form-group"><input type="password" name="new_password" class="form-control" placeholder="Password baru (min 6)" required minlength="6"></div>
+          <div class="form-group"><input type="password" name="new_password_confirm" class="form-control" placeholder="Konfirmasi password baru" required></div>
+          <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
+        </form>
+      </div>`;
+
+    document.getElementById('pwForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(e.target));
+        if (data.new_password !== data.new_password_confirm) { showToast('Password tidak cocok', 'error'); return; }
+        const res = await api('/api/auth/change-password', { method: 'PUT', body: JSON.stringify(data) });
+        const result = await res.json();
+        showToast(result.message, result.success ? 'success' : 'error');
+        if (result.success) e.target.reset();
+      } catch(err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+
+    document.getElementById('profileForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(e.target));
+        const res = await api('/api/technicians/' + tech.id, { method: 'PUT', body: JSON.stringify(data) });
+        const result = await res.json();
+        if (result.success) { showToast('Profil disimpan!', 'success'); loadProfile(); }
+        else showToast(result.message, 'error');
+      } catch(err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+
+  } catch(err) {
+    document.getElementById('profilePage').innerHTML = '<div class="card" style="max-width:600px;margin:2rem auto;text-align:center"><div class="alert alert-danger">❌ Gagal memuat profil: ' + esc(err.message) + '</div><a href="/" class="btn btn-primary btn-sm">Kembali ke Login</a></div>';
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(loadProfile, 100); });
+} else {
+  setTimeout(loadProfile, 100);
+}
 </script>

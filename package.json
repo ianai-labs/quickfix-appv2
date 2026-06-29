@@ -9,7 +9,10 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:build": "docker compose build",
-    "docker:logs": "docker compose logs -f app"
+    "docker:logs": "docker compose logs -f app",
+    "lint": "eslint . --ext .js --ignore-pattern node_modules",
+    "lint:fix": "eslint . --ext .js --ignore-pattern node_modules --fix",
+    "test:smoke": "node test/smoke.test.js"
   },
   "keywords": [
     "handyman",
@@ -41,6 +44,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
     "nodemon": "^3.1.4"
   }
 }

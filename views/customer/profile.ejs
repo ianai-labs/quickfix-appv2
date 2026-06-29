@@ -1,76 +1,115 @@
 <div id="profilePage"><div class="loading-center"><div class="spinner spinner-lg"></div></div></div>
 
-<script src="/js/main.js"></script>
 <script>
-async function loadProfile() {
-  const meRes = await fetch('/api/auth/me');
-  const me = (await meRes.json()).data.user;
-
-  // Get customer data from orders endpoint user info
-  const ordersRes = await fetch('/api/orders?limit=1');
-  const orderSample = (await ordersRes.json()).data?.orders?.[0];
-
-  document.getElementById('profilePage').innerHTML = `
-    <div class="card" style="max-width:600px;margin:0 auto">
-      <div class="card-header"><h2>👤 Profil Saya</h2></div>
-
-      <div class="stats-grid" style="margin-bottom:1.5rem">
-        <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="totalOrders">-</div><div class="stat-label">Total Order</div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="doneOrders">-</div><div class="stat-label">Selesai</div></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">Username</label><p style="font-weight:600">${me.username}</p></div>
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">Email</label><p style="font-weight:600">${me.email}</p></div>
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">Role</label><p><span class="badge badge-assigned">Pencari Jasa</span></p></div>
-        <div><label style="font-size:0.8rem;color:var(--gray-500)">Bergabung</label><p style="font-weight:600">${formatDate(me.created_at)}</p></div>
-      </div>
-
-      <h3 style="margin-top:1.5rem">✏️ Edit Profil</h3>
-      <form id="profileForm" style="margin-top:0.5rem">
-        <div class="form-group"><label>Nomor HP</label><input type="text" name="no_hp" id="noHpInput" class="form-control" placeholder="0812xxxx"></div>
-        <div class="form-group"><label>Alamat</label><textarea name="alamat" id="alamatInput" class="form-control" rows="2" placeholder="Alamat lengkap"></textarea></div>
-        <button type="submit" class="btn btn-primary btn-sm">Simpan Profil</button>
-      </form>
-
-      <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
-      <form id="pwForm" style="margin-top:0.5rem">
-        <div class="form-group"><input type="password" name="current_password" class="form-control" placeholder="Password lama" required></div>
-        <div class="form-group"><input type="password" name="new_password" class="form-control" placeholder="Password baru (min 6)" required minlength="6"></div>
-        <div class="form-group"><input type="password" name="new_password_confirm" class="form-control" placeholder="Konfirmasi password baru" required></div>
-        <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
-      </form>
-    </div>`;
-
-  // Load profile data from orders
-  const allOrders = await fetch('/api/orders?limit=1');
-  const orderSample = (await allOrders.json()).data?.orders?.[0];
-  if (orderSample?.customer?.no_hp) document.getElementById('noHpInput').value = orderSample.customer.no_hp;
-
-  document.getElementById('profileForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    const res = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(data) });
-    const result = await res.json();
-    showToast(result.message, result.success ? 'success' : 'error');
-  });
-
-  document.getElementById('pwForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target));
-    if (data.new_password !== data.new_password_confirm) { showToast('Password tidak cocok', 'error'); return; }
-    const res = await api('/api/auth/change-password', { method: 'PUT', body: JSON.stringify(data) });
-    const result = await res.json();
-    showToast(result.message, result.success ? 'success' : 'error');
-    if (result.success) e.target.reset();
-  });
-
-  // Load stats
-  const allOrders = await fetch('/api/orders?limit=100');
-  const orders = (await allOrders.json()).data?.orders || [];
-  document.getElementById('totalOrders').textContent = orders.length;
-  document.getElementById('doneOrders').textContent = orders.filter(o => o.status === 'done').length;
+// Inline showToast/darkMode fallback — jaga-jaga kalau main.js belum siap
+if (typeof showToast === 'undefined') {
+  window.showToast = function(msg, type) { alert((type==='error'?'❌ ':'✅ ') + msg); };
+}
+if (typeof formatDate === 'undefined') {
+  window.formatDate = function(d) { return d ? new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' }) : '-'; };
+}
+if (typeof api === 'undefined') {
+  window.api = async function(url, options = {}) {
+    const headers = { ...(options.headers || {}) };
+    if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+    return fetch(url, { ...options, headers, credentials: 'same-origin' });
+  };
+}
+if (typeof statusBadge === 'undefined') {
+  window.statusBadge = function(s) { return '<span class="badge">' + s + '</span>'; };
 }
 
-loadProfile();
+async function loadProfile() {
+  try {
+    // Ambil data user
+    const meRes = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (!meRes.ok) throw new Error('Gagal memuat data user (HTTP '+meRes.status+')');
+    const meData = await meRes.json();
+    if (!meData.success || !meData.data?.user) throw new Error('Data user tidak valid');
+    const me = meData.data.user;
+
+    // Render profil
+    document.getElementById('profilePage').innerHTML = `
+      <div class="card" style="max-width:600px;margin:0 auto">
+        <div class="card-header"><h2>👤 Profil Saya</h2></div>
+
+        <div class="stats-grid" style="margin-bottom:1.5rem">
+          <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-value" id="totalOrders">-</div><div class="stat-label">Total Order</div></div>
+          <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value" id="doneOrders">-</div><div class="stat-label">Selesai</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div><label style="font-size:0.8rem;color:var(--gray-500)">Username</label><p style="font-weight:600">${esc(me.username)}</p></div>
+          <div><label style="font-size:0.8rem;color:var(--gray-500)">Email</label><p style="font-weight:600">${esc(me.email)}</p></div>
+          <div><label style="font-size:0.8rem;color:var(--gray-500)">Role</label><p><span class="badge badge-assigned">Pencari Jasa</span></p></div>
+          <div><label style="font-size:0.8rem;color:var(--gray-500)">Bergabung</label><p style="font-weight:600">${formatDate(me.created_at)}</p></div>
+        </div>
+
+        <h3 style="margin-top:1.5rem">✏️ Edit Profil</h3>
+        <form id="profileForm" style="margin-top:0.5rem">
+          <div class="form-group"><label>Nomor HP</label><input type="text" name="no_hp" id="noHpInput" class="form-control" placeholder="0812xxxx"></div>
+          <div class="form-group"><label>Alamat</label><textarea name="alamat" id="alamatInput" class="form-control" rows="2" placeholder="Alamat lengkap"></textarea></div>
+          <button type="submit" class="btn btn-primary btn-sm">Simpan Profil</button>
+        </form>
+
+        <h3 style="margin-top:1.5rem">🔒 Ganti Password</h3>
+        <form id="pwForm" style="margin-top:0.5rem">
+          <div class="form-group"><input type="password" name="current_password" class="form-control" placeholder="Password lama" required></div>
+          <div class="form-group"><input type="password" name="new_password" class="form-control" placeholder="Password baru (min 6)" required minlength="6"></div>
+          <div class="form-group"><input type="password" name="new_password_confirm" class="form-control" placeholder="Konfirmasi password baru" required></div>
+          <button type="submit" class="btn btn-primary btn-sm">Ganti Password</button>
+        </form>
+      </div>`;
+
+    // Load stats
+    try {
+      const statsRes = await fetch('/api/orders?limit=100', { credentials: 'same-origin' });
+      const statsData = await statsRes.json();
+      const orders = statsData.data?.orders || [];
+      document.getElementById('totalOrders').textContent = orders.length;
+      document.getElementById('doneOrders').textContent = orders.filter(o => o.status === 'done').length;
+    } catch (_) {
+      document.getElementById('totalOrders').textContent = '?';
+      document.getElementById('doneOrders').textContent = '?';
+    }
+
+    // Event: Simpan profil
+    document.getElementById('profileForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(e.target));
+        const res = await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify(data) });
+        const result = await res.json();
+        showToast(result.message, result.success ? 'success' : 'error');
+      } catch (err) { showToast('Gagal menyimpan profil: ' + err.message, 'error'); }
+    });
+
+    // Event: Ganti password
+    document.getElementById('pwForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(e.target));
+        if (data.new_password !== data.new_password_confirm) { showToast('Password tidak cocok', 'error'); return; }
+        const res = await api('/api/auth/change-password', { method: 'PUT', body: JSON.stringify(data) });
+        const result = await res.json();
+        showToast(result.message, result.success ? 'success' : 'error');
+        if (result.success) e.target.reset();
+      } catch (err) { showToast('Gagal: ' + err.message, 'error'); }
+    });
+
+  } catch (err) {
+    document.getElementById('profilePage').innerHTML = `
+      <div class="card" style="max-width:600px;margin:2rem auto;text-align:center">
+        <div class="alert alert-danger">❌ Gagal memuat profil: ${esc(err.message)}</div>
+        <a href="/" class="btn btn-primary btn-sm">Kembali ke Login</a>
+      </div>`;
+  }
+}
+
+// Jalankan setelah DOM + main.js siap
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { setTimeout(loadProfile, 100); });
+} else {
+  setTimeout(loadProfile, 100);
+}
 </script>

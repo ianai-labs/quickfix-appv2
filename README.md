@@ -1,5 +1,7 @@
 # Quickfix App v2
 
+[![CI/CD Pipeline](https://github.com/ianai-labs/quickfix-appv2/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/ianai-labs/quickfix-appv2/actions/workflows/ci-cd.yml)
+
 Platform layanan **handyman / perbaikan rumah** on-demand.  
 Dibangun dengan **Node.js + Express + MySQL + Docker** untuk tugas mata kuliah **Pemrograman Fullstack**.
 
