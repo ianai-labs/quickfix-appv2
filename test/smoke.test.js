@@ -91,18 +91,20 @@ async function run() {
       failed++;
     }
 
-    // ── Test 2: Login admin ──
-    console.log('2. POST /api/auth/login (admin) ...');
+    // ── Test 2: Register test user ──
+    console.log('2. POST /api/auth/register ...');
+    const TEST_USER = 'smoke_test_' + Date.now();
+    const TEST_PASS = 'test123456';
     try {
-      const login = await fetch(`${BASE}/api/auth/login`, {
+      const reg = await fetch(`${BASE}/api/auth/register`, {
         method: 'POST',
-        body: { login: 'admin', password: 'admin123' },
+        body: { username: TEST_USER, email: TEST_USER + '@test.local', password: TEST_PASS, password_confirm: TEST_PASS, role: 'customer' },
       });
-      if (login.status === 200 && login.body.success && login.body.data.token) {
-        console.log('   ✅ PASS — JWT token diterima, role:', login.body.data.user.role);
+      if (reg.status === 201 && reg.body.success) {
+        console.log('   ✅ PASS — User registered:', reg.body.data.username);
         passed++;
       } else {
-        console.log('   ❌ FAIL —', login.body.message || 'unexpected');
+        console.log('   ❌ FAIL —', reg.body.message || 'unexpected status: ' + reg.status);
         failed++;
       }
     } catch (e) {
@@ -110,8 +112,74 @@ async function run() {
       failed++;
     }
 
-    // ── Test 3: Unauthorized access ──
-    console.log('3. GET /api/auth/me (no token) ...');
+    // ── Test 3: Login (new device → expect OTP) ──
+    console.log('3. POST /api/auth/login (device tracking) ...');
+    let jwtToken = null;
+    try {
+      const login = await fetch(`${BASE}/api/auth/login`, {
+        method: 'POST',
+        body: { login: TEST_USER, password: TEST_PASS },
+      });
+      if (!login.body.success) {
+        console.log('   ❌ FAIL —', login.body.message);
+        failed++;
+      } else if (login.body.data.require_otp) {
+        // Device baru → verifikasi OTP dulu
+        console.log('   📱 Device baru terdeteksi, verifikasi OTP...');
+        const otpCode = login.body.data.dev_otp;
+        const tempToken = login.body.data.temp_token;
+
+        if (!otpCode || !tempToken) {
+          console.log('   ❌ FAIL — OTP code/token tidak tersedia');
+          failed++;
+        } else {
+          const verify = await fetch(`${BASE}/api/auth/verify-device`, {
+            method: 'POST',
+            body: { temp_token: tempToken, code: otpCode },
+          });
+          if (verify.body.success && verify.body.data.token) {
+            jwtToken = verify.body.data.token;
+            console.log('   ✅ PASS — Device verified, JWT didapat, role:', verify.body.data.user.role);
+            passed++;
+          } else {
+            console.log('   ❌ FAIL —', verify.body.message || 'verifikasi gagal');
+            failed++;
+          }
+        }
+      } else if (login.body.data.token) {
+        jwtToken = login.body.data.token;
+        console.log('   ✅ PASS — JWT langsung (device dikenal)');
+        passed++;
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL —', e.message);
+      failed++;
+    }
+
+    // ── Test 4: Authorized access with JWT ──
+    console.log('4. GET /api/auth/me (with JWT) ...');
+    try {
+      if (!jwtToken) {
+        console.log('   ⚠️ SKIP — no JWT from previous test');
+      } else {
+        const me = await fetch(`${BASE}/api/auth/me`, {
+          headers: { 'Authorization': 'Bearer ' + jwtToken },
+        });
+        if (me.status === 200 && me.body.success) {
+          console.log('   ✅ PASS — Authenticated as:', me.body.data.user.username);
+          passed++;
+        } else {
+          console.log('   ❌ FAIL — expected 200, got', me.status);
+          failed++;
+        }
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL —', e.message);
+      failed++;
+    }
+
+    // ── Test 5: Unauthorized access ──
+    console.log('5. GET /api/auth/me (no token) ...');
     try {
       const me = await fetch(`${BASE}/api/auth/me`);
       if (me.status === 401) {
