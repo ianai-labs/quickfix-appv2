@@ -1,171 +1,180 @@
 # Quickfix App v2
 
 [![CI/CD Pipeline](https://github.com/ianai-labs/quickfix-appv2/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/ianai-labs/quickfix-appv2/actions/workflows/ci-cd.yml)
+[![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com/)
+[![Docker](https://img.shields.io/badge/Docker-✓-2496ED?logo=docker)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-ISC-blue)](./LICENSE)
 
-Platform layanan **handyman / perbaikan rumah** on-demand.  
-Dibangun dengan **Node.js + Express + MySQL + Docker** untuk tugas mata kuliah **Pemrograman Fullstack**.
-
----
-
-## Fitur Utama
-
-| Fitur | Deskripsi |
-|-------|-----------|
-| **Landing Page** | Hero section, value proposition, stock photo, login CTA |
-| **Role-based Auth** | 3 role: Pencari Jasa (Customer), Penyedia Jasa (Technician), Admin |
-| **JWT + Refresh Token** | Access token 1 jam + refresh token 7 hari + auto-refresh |
-| **Device ID + OTP** | SHA256 device fingerprint, OTP verification untuk device baru |
-| **Booking Order** | Customer membuat order dengan estimasi harga real-time |
-| **Algoritma WRTA** | Weighted Random Technician Assignment — premium 3x prioritas |
-| **Payment + Escrow** | Midtrans Snap (sandbox) + demo fallback, dana ditahan sampai selesai |
-| **Two-Way Reviews** | Customer & teknisi saling rating ⭐ + komentar setelah order done |
-| **Cloud Storage** | Upload foto pekerjaan ke Cloudinary |
-| **Email Service** | Nodemailer — OTP, reset password, notifikasi order |
-| **Pagination** | Semua list view dengan Previous/Next |
-| **Dark Mode** | Toggle dark/light, localStorage persisted |
-| **Sidebar Dashboard** | Dark theme, collapsible, breadcrumb navigation |
-| **Toast Notification** | Success/error/info, auto-dismiss |
-| **Admin Charts** | Order status bar chart, revenue summary |
-| **Real-time Badge** | Pending job count di sidebar teknisi |
+**Platform Layanan Perbaikan Rumah On-Demand** — Menghubungkan pemilik rumah dengan teknisi profesional secara cepat, aman, dan transparan. Dibangun dengan **Node.js + Express + MySQL + Docker**.
 
 ---
 
-## Teknologi
+## Demo
 
-| Layer | Teknologi |
-|-------|-----------|
-| Runtime | Node.js 20 (Alpine) |
-| Framework | Express.js 4.21 |
-| Template | EJS 3.1 + express-ejs-layouts |
-| ORM | Sequelize 6.37 |
-| Database | MySQL 8.0 |
-| Auth | JWT (jsonwebtoken) + bcryptjs |
-| Payment | Midtrans Snap (midtrans-client) |
-| Upload | Multer → Cloudinary |
-| Email | Nodemailer (SMTP) |
-| Security | Helmet, rate limiting, OTP SHA256 hashed |
-| Container | Docker + Docker Compose |
+| Mode | URL | Status |
+|------|-----|--------|
+| **Railway (Production)** | [quickfix-appv2.up.railway.app](https://quickfix-appv2.up.railway.app) | Live |
+| **Local (Docker)** | `http://localhost:3000` | `docker compose up -d` |
+
+### Akun Demo
+
+| Pengguna | Password | Role |
+|----------|----------|------|
+| `admin` | `admin123` | Admin — Kelola platform |
+| `budi` | `admin123` | Customer — Pencari jasa |
+| `andi` | `admin123` | Technician — Premium, Rating 5.0 |
+| `rudi` | `admin123` | Technician — Rating 4.8 |
+| `dewi` | `admin123` | Technician — Rating 4.5 |
+
+**Demo Mode:** Kode OTP ditampilkan langsung di modal — tidak perlu konfigurasi email.
+
+---
+
+## Fitur
+
+### Core
+
+- **Landing Page** — Hero section, value proposition, CTA, feature cards
+- **3 Role Auth** — Customer, Technician, Admin dengan hak akses berbeda
+- **JWT Dual Token** — Access (1 jam) + Refresh (7 hari) + auto-refresh transparan
+- **Device ID + OTP** — SHA256 fingerprint device, OTP 6-digit via email (5 menit)
+
+### Bisnis
+
+- **Booking Order** — Customer pilih layanan, sistem auto-assign teknisi terbaik
+- **Algoritma WRTA** — Weighted Random Technician Assignment — premium 3× prioritas
+- **Order State Machine** — 6 status: pending → assigned → on_the_way → in_progress → done
+- **Payment Escrow** — Midtrans Snap, dana ditahan sampai pekerjaan selesai
+- **Two-Way Review** — Customer & teknisi saling rating ⭐ 1-5 + komentar
+- **Cloud Storage** — Upload foto pekerjaan ke Cloudinary dengan auto-resize
+
+### UI/UX
+
+- **Dashboard per Role** — Ringkasan data, statistik, chart, filter & pagination
+- **Dark Mode** — Toggle light/dark, dipersistensi via localStorage
+- **Responsive** — Mobile-friendly dengan sidebar collapsible
+- **Toast Notifications** — Sukses/error/info, auto-dismiss
+
+### DevOps
+
+- **Docker** — 3-container stack: App + MySQL + phpMyAdmin
+- **CI/CD** — GitHub Actions: Lint → Smoke Test (5 case) → Docker Build
+- **Auto-Seed** — Data demo otomatis pada deploy pertama
+- **Railway Deploy** — Production dengan health check + auto-restart
+
+---
+
+## Tech Stack
+
+| Layer | Teknologi | Versi |
+|-------|-----------|-------|
+| Runtime | Node.js (Alpine) | 22 |
+| Framework | Express.js | 4.21 |
+| Template | EJS + express-ejs-layouts | 3.1 |
+| ORM | Sequelize | 6.37 |
+| Database | MySQL | 8.0 |
+| Auth | JWT (jsonwebtoken) + bcryptjs | 9.0 / 2.4 |
+| Payment | Midtrans Snap (midtrans-client) | 1.4 |
+| Upload | Multer → Cloudinary | 1.4 / 2.3 |
+| Email | Nodemailer (SMTP) | 6.9 |
+| Security | Helmet + express-rate-limit | 8.2 / 7.4 |
+| Container | Docker + Docker Compose | 24+ |
+| CI/CD | GitHub Actions | — |
+| Deploy | Railway | — |
 
 ---
 
 ## Quick Start
 
 ### Prasyarat
+
 - Docker & Docker Compose v2
 - Git
 
 ### 1. Clone & Setup
+
 ```bash
-git clone <repo-url> quickfix-appv2
+git clone git@github.com:ianai-labs/quickfix-appv2.git
 cd quickfix-appv2
 cp .env.example .env
-# Edit .env — minimal isi JWT_SECRET dengan string random
 ```
 
-### 2. Jalankan dengan Docker
+### 2. Jalankan
+
 ```bash
 docker compose up -d
 ```
 
-| Service | URL |
-|---------|-----|
-| **Aplikasi** | http://localhost:3000 |
-| **phpMyAdmin** | http://localhost:8081 |
+Tunggu ~30 detik hingga MySQL siap dan app berjalan.
 
-### 3. Login Demo
+### 3. Akses
 
-| User | Password | Role |
-|------|----------|------|
-| `admin` | `admin123` | Admin |
-| `budi` | `admin123` | Customer (Pencari Jasa) |
-| `andi` | `admin123` | Technician (Penyedia Jasa, Premium) |
-| `rudi` | `admin123` | Technician |
-| `dewi` | `admin123` | Technician |
-
-> **Demo Mode**: OTP code ditampilkan langsung di modal. Midtrans key tidak perlu dikonfigurasi — payment otomatis sukses.
+| Service | URL | Kredensial |
+|---------|-----|-----------|
+| Aplikasi | http://localhost:3000 | Akun demo di atas |
+| Health Check | http://localhost:3000/health | — |
+| phpMyAdmin | http://localhost:8081 | `root` / `rootpassword` |
+| Debug | http://localhost:3000/debug/check | — |
 
 ---
 
-## Struktur Proyek
+## API
 
+### Ringkasan
+
+| Modul | Endpoint | Deskripsi |
+|-------|----------|-----------|
+| Auth | 11 | Register, login, device verify, reset password, refresh, profile |
+| Orders | 5 | CRUD order, update status state machine, reassign teknisi |
+| Technicians | 4 | List, detail, update profil, toggle online/offline |
+| Upload | 1 | Upload foto ke Cloudinary (multipart, max 5 MB) |
+| OTP | 2 | Kirim ulang & verifikasi kode OTP |
+| Payment | 4 | Checkout Midtrans, cek status, lepas escrow, webhook |
+| Reviews | 2 | Buat & lihat ulasan two-way |
+| Admin | 5 | Statistik, kelola user, kelola pricing |
+
+**Total: 41 endpoint REST API** — respons JSON konsisten, HTTP status codes, pagination terstandar.
+
+### Contoh Request
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "login": "budi", "password": "admin123" }
 ```
-quickfix-appv2/
-├── config/          # Database, Cloudinary, Nodemailer, Midtrans, Constants
-├── models/          # Sequelize models (10 tabel)
-├── middleware/       # Auth JWT, Role, Device ID, Upload, Error handler
-├── services/        # Algorithm, Email, OTP, Cloudinary, Payment
-├── controllers/     # Business logic (8 controllers)
-├── routes/          # Express routes (9 route files)
-├── views/           # EJS templates (18 pages)
-├── public/          # CSS, JS
-├── docs/            # Dokumentasi (12 file)
-├── database/        # SQL schema + seed data
-├── docker-compose.yml
-├── Dockerfile
-├── server.js        # Entry point
-└── README.md
+
+```json
+{
+  "success": true,
+  "message": "Device baru terdeteksi.",
+  "data": {
+    "require_otp": true,
+    "temp_token": "eyJ...",
+    "dev_otp": "469995"
+  }
+}
 ```
+
+> Dokumentasi lengkap: `docs/05-api-spec.md`
 
 ---
 
-## API Endpoints (26)
-
-### Auth
-| Method | URL | Auth | Deskripsi |
-|--------|-----|:---:|-----------|
-| POST | `/api/auth/register` | — | Registrasi |
-| POST | `/api/auth/login` | — | Login + device check |
-| POST | `/api/auth/verify-device` | — | Verifikasi OTP device baru |
-| POST | `/api/auth/forgot-password` | — | Request reset password |
-| POST | `/api/auth/reset-password` | — | Reset password |
-| POST | `/api/auth/refresh` | — | Refresh access token |
-| GET | `/api/auth/me` | JWT | Info user |
-| GET/POST | `/api/auth/logout` | — | Logout |
-| PUT | `/api/auth/change-password` | JWT | Ganti password |
-| PUT | `/api/auth/profile` | JWT | Edit profil customer |
-
-### Orders & Technicians
-| Method | URL | Auth | Deskripsi |
-|--------|-----|:---:|-----------|
-| GET | `/api/orders` | JWT | List orders (paginated, filterable) |
-| POST | `/api/orders` | JWT | Buat order + auto-assign teknisi |
-| GET | `/api/orders/:id` | JWT | Detail order |
-| PUT | `/api/orders/:id` | JWT | Update status (state machine) |
-| PUT | `/api/orders/:id/assign` | JWT | Re-assign teknisi |
-| GET | `/api/technicians` | JWT | List teknisi |
-| PUT | `/api/technicians/:id` | JWT | Update teknisi (admin) |
-| PUT | `/api/technicians/:id/status` | JWT | Update status online/offline |
-
-### Payment, Upload, OTP, Reviews, Admin
-| Method | URL | Auth | Deskripsi |
-|--------|-----|:---:|-----------|
-| POST | `/api/payment/checkout/:id` | JWT | Buat transaksi pembayaran |
-| GET | `/api/payment/status/:id` | JWT | Status transaksi |
-| POST | `/api/payment/release/:id` | Admin | Lepas dana ke teknisi |
-| POST | `/api/payment/webhook` | — | Midtrans callback |
-| POST | `/api/upload` | JWT | Upload foto ke Cloudinary |
-| POST | `/api/otp/send` | — | Kirim ulang OTP |
-| POST | `/api/otp/verify` | — | Verifikasi OTP |
-| POST | `/api/reviews` | JWT | Buat review |
-| GET | `/api/reviews/order/:id` | JWT | List review per order |
-| GET | `/api/admin/users` | Admin | List semua customer |
-| PUT | `/api/admin/users/:id/toggle` | Admin | Aktif/nonaktif user |
-| GET | `/api/admin/pricing` | Public | List harga layanan |
-| PUT | `/api/admin/pricing/:id` | Admin | Update harga |
-| GET | `/api/admin/stats` | Admin | Statistik agregat |
-
----
-
-## Algoritma — Weighted Random Technician Assignment
+## Algoritma — WRTA
 
 ```
-weight = 1.0 × (is_premium ? 3.0 : 1.0) × (rating / 5.0)
+weight = 1.0 × (is_premium ? 3.0 : 1.0) × max(rating / 5.0, 0.1)
 ```
 
-- Teknisi premium: **3x bobot** — peluang 3x lebih besar
-- Rating dinormalisasi sebagai faktor pengali
-- Minimum bobot 0.1 untuk teknisi baru
-- Kompleksitas: **O(n)** — single pass
+**Weighted Random Technician Assignment** — Algoritma penugasan teknisi dengan pembobotan:
+
+- Teknisi **premium** mendapat bobot **3×** — peluang 3 kali lebih besar
+- **Rating** dinormalisasi (0.0–1.0) sebagai faktor pengali
+- Teknisi **baru** tetap dapat peluang (bobot minimum 0.1)
+- Kompleksitas **O(n)** — single pass filtering + weighted random
+- Terinspirasi sistem distribusi order **Gojek/Grab**
 
 > Detail: `docs/07-algorithm.md`
 
@@ -176,37 +185,97 @@ weight = 1.0 × (is_premium ? 3.0 : 1.0) × (rating / 5.0)
 | Fitur | Implementasi |
 |-------|-------------|
 | Password | bcrypt, salt rounds 10 |
-| JWT | Access (1h) + Refresh (7d) + auto-refresh |
-| Device Tracking | SHA256(user-agent + IP + secret) |
-| OTP | 6-digit, SHA256 hashed, 5 menit expiry |
-| Rate Limiting | Login 10/min, Register 5/min (dev: 100/50) |
-| XSS | esc() HTML entity sanitizer |
-| Helmet | X-Frame-Options, X-Content-Type, X-XSS |
-| RBAC | Role-based access di setiap route |
+| JWT | Access (1h) + Refresh (7d), httpOnly cookie, auto-refresh |
+| Device Tracking | SHA256(user-agent + IP + DEVICE_SECRET) |
+| OTP | 6-digit, SHA256 hashed, 5 menit expiry, max 3 attempts |
+| Rate Limiting | Global 200/15m, Login 10/min, Register 5/min, OTP 5/5min |
+| Helmet | X-Frame-Options, X-Content-Type, X-XSS, HSTS |
+| Input Validation | Server-side di semua endpoint (regex, length, enum, type) |
+| RBAC | 3 role, middleware authorization di setiap route |
 
 > Detail: `docs/08-security.md`
 
 ---
 
+## Arsitektur
+
+```
+Browser (EJS + CSS + JS)
+    │
+    ▼
+Express.js Server
+├── 9 Routes (REST API + View)
+├── 5 Middleware (Auth, Device, Role, Upload, Error)
+├── 8 Controllers (Business Logic)
+├── 5 Services (Algorithm, Email, OTP, Cloudinary, Payment)
+├── 10 Sequelize Models
+    │
+    ▼
+MySQL 8.0 Database (10 tabel, 78 kolom, 11 relasi)
+
+External: Cloudinary │ Nodemailer │ Midtrans
+```
+
+> Detail: `docs/04-architecture.md`
+
+---
+
+## CI/CD Pipeline
+
+```
+Push → GitHub Actions
+    ├── Lint (ESLint)
+    ├── Smoke Test (5 test case + MySQL container)
+    ├── Docker Build (cache GitHub Actions)
+    └── Deploy Railway (auto dari main branch)
+```
+
+---
+
+## Struktur Proyek
+
+```
+quickfix-appv2/
+├── config/          # DB, Seed, Cloudinary, Midtrans, Nodemailer, Constants
+├── models/          # Sequelize — User, Customer, Technician, Order, dll (10)
+├── middleware/       # Auth JWT, Device, Role, Upload, ErrorHandler
+├── services/        # Algorithm WRTA, Email, OTP, Cloudinary, Payment
+├── controllers/     # Auth, Order, Technician, Admin, OTP, Payment, Review, Upload
+├── routes/          # authRoutes ~ viewRoutes (9 file)
+├── views/           # EJS — auth, customer, technician, admin (18 halaman)
+├── public/          # CSS design system + JavaScript helpers
+├── docs/            # Dokumentasi lengkap (12 file)
+├── test/            # Smoke test (5 case, CI-ready)
+├── database/        # SQL schema referensi
+├── .github/         # CI/CD workflow
+├── server.js        # Entry point
+├── Dockerfile
+├── docker-compose.yml
+└── railway.json     # Deployment config
+```
+
+---
+
 ## Dokumentasi
 
-| Dokumen | Isi |
-|---------|-----|
-| `docs/01-prd.md` | Product Requirement Document |
-| `docs/02-user-story.md` | User Stories + Acceptance Criteria |
-| `docs/03-erd.md` | Entity Relationship Diagram |
-| `docs/04-architecture.md` | Arsitektur MVC + Docker |
-| `docs/05-api-spec.md` | API Specification lengkap |
-| `docs/06-wireframe.md` | Wireframe & UI Design |
-| `docs/07-algorithm.md` | Algoritma WRTA detail |
-| `docs/08-security.md` | Desain Keamanan |
-| `docs/09-integration.md` | Integrasi Eksternal |
-| `docs/10-testing.md` | Rencana Pengujian |
-| `docs/11-setup-guide.md` | Panduan Menjalankan |
-| `docs/12-program-flow.md` | Alur Program Lengkap |
+| # | Dokumen | Isi |
+|---|---------|-----|
+| 1 | `docs/01-prd.md` | Product Requirement Document |
+| 2 | `docs/02-user-story.md` | User Stories + Acceptance Criteria |
+| 3 | `docs/03-erd.md` | Entity Relationship Diagram (10 tabel) |
+| 4 | `docs/04-architecture.md` | Arsitektur MVC + Docker + Request Flow |
+| 5 | `docs/05-api-spec.md` | Spesifikasi 41 endpoint API |
+| 6 | `docs/06-wireframe.md` | Wireframe & UI Design System |
+| 7 | `docs/07-algorithm.md` | Algoritma WRTA — detail, pseudocode, analisis |
+| 8 | `docs/08-security.md` | Desain Keamanan 6 layer |
+| 9 | `docs/09-integration.md` | Integrasi Cloudinary, Nodemailer, Midtrans |
+| 10 | `docs/10-testing.md` | Rencana Pengujian (20+ test case) |
+| 11 | `docs/11-setup-guide.md` | Panduan Menjalankan + Troubleshooting |
+| 12 | `docs/12-program-flow.md` | Alur Program — decision tree, state diagram |
 
 ---
 
 ## Lisensi
 
-ISC — Proyek pembelajaran untuk mata kuliah Pemrograman Fullstack.
+ISC — Proyek tugas mata kuliah **Pemrograman Fullstack**.  
+Dosen: Irfan Nurdiansyah, S.Kom., M.Kom.
