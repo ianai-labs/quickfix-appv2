@@ -8,10 +8,15 @@ const { OTP_TYPES } = require('../config/constants');
  */
 async function send(req, res, next) {
   try {
-    const { token } = req.body;
+    const token = req.body.token || req.cookies.token;
+    const type = req.body.type || OTP_TYPES.DEVICE_VERIFY;
 
     if (!token) {
       return res.status(400).json({ success: false, message: 'Token verifikasi diperlukan.' });
+    }
+
+    if (!Object.values(OTP_TYPES).includes(type)) {
+      return res.status(400).json({ success: false, message: 'Tipe OTP tidak valid.' });
     }
 
     let decoded;
@@ -26,7 +31,7 @@ async function send(req, res, next) {
       return res.status(404).json({ success: false, message: 'User tidak ditemukan.' });
     }
 
-    const result = await otpService.send(user.id, user.email, OTP_TYPES.DEVICE_VERIFY);
+    const result = await otpService.send(user.id, user.email, type);
 
     res.json({ success: true, message: 'Kode OTP telah dikirim ulang.', data: result });
   } catch (error) {
@@ -39,7 +44,8 @@ async function send(req, res, next) {
  */
 async function verify(req, res, next) {
   try {
-    const { token, code, type } = req.body;
+    const { code, type } = req.body;
+    const token = req.body.token || req.cookies.token;
 
     if (!code) {
       return res.status(400).json({ success: false, message: 'Kode OTP wajib diisi.' });

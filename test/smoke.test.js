@@ -472,6 +472,60 @@ async function run() {
       failed++;
     }
 
+    // ── Test 15: OTP verify with cookie-only token (no body token) ──
+    console.log('15. POST /api/otp/verify (cookie-only token, invalid code) ...');
+    try {
+      if (!tokens.budi) {
+        console.log('   ⚠️ SKIP — no budi token');
+      } else {
+        const verifyRes = await fetch(BASE + '/api/otp/verify', {
+          method: 'POST',
+          headers: { 'Cookie': 'token=' + tokens.budi },
+          body: { code: '000000', type: 'order_verify' }, // no body token
+        });
+        // Token resolved from cookie → code validation runs → "Kode OTP tidak valid."
+        // NOT "Token verifikasi diperlukan."
+        // Why: no order_verify OTP record exists in DB for user budi at this point,
+        // so otpService.verify() always returns "Kode OTP tidak valid." — this is the
+        // expected failure that proves the token WAS resolved from the cookie. Under
+        // the old code (body-only token), this request would never reach the OTP lookup
+        // and would instead return "Token verifikasi diperlukan." at line 61.
+        if (verifyRes.status === 400 && verifyRes.body.message === 'Kode OTP tidak valid.') {
+          console.log('   ✅ PASS — token accepted from cookie, code rejected as expected');
+          passed++;
+        } else if (verifyRes.body.message === 'Token verifikasi diperlukan.') {
+          console.log('   ❌ FAIL — token not resolved from cookie');
+          failed++;
+        } else {
+          console.log('   ❌ FAIL — unexpected response:', JSON.stringify(verifyRes.body));
+          failed++;
+        }
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL —', e.message);
+      failed++;
+    }
+
+    // ── Test 16: OTP verify with NO token at all ──
+    console.log('16. POST /api/otp/verify (no token anywhere) ...');
+    try {
+      const verifyRes = await fetch(BASE + '/api/otp/verify', {
+        method: 'POST',
+        body: { code: '000000', type: 'order_verify' }, // no body token, no Cookie
+      });
+      if (verifyRes.status === 400 && verifyRes.body.message === 'Token verifikasi diperlukan.') {
+        console.log('   ✅ PASS — 400 "Token verifikasi diperlukan."');
+        passed++;
+      } else {
+        console.log('   ❌ FAIL — expected 400 "Token verifikasi diperlukan.", got:',
+          JSON.stringify({ status: verifyRes.status, message: verifyRes.body.message }));
+        failed++;
+      }
+    } catch (e) {
+      console.log('   ❌ FAIL —', e.message);
+      failed++;
+    }
+
   } catch (e) {
     console.log('❌ FATAL —', e.message);
     failed++;

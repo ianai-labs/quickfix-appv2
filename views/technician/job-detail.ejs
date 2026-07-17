@@ -18,7 +18,8 @@ async function loadJob() {
     actions.push({ label: '🚗 On The Way', status: 'on_the_way', cls: 'btn-warning', style: 'background:var(--warning);color:#fff' });
   }
   if (o.status === 'on_the_way') {
-    actions.push({ label: '🔧 Mulai Pekerjaan', status: 'in_progress', cls: 'btn-info' });
+    const canStart = o.otp_verified === true;
+    actions.push({ label: '🔧 Mulai Pekerjaan', status: 'in_progress', cls: 'btn-info', disabled: !canStart });
   }
   if (['on_the_way','in_progress'].includes(o.status)) {
     actions.push({ label: '✅ Selesai', status: 'done', cls: 'btn-success' });
@@ -46,9 +47,20 @@ function render(o, reviews, actions) {
       <!-- Status Actions -->
       ${actions.length ? `
         <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
-          ${actions.map(a => `<button class="btn btn-sm ${a.cls}" onclick="updateStatus('${a.status}')" style="${a.style||''}">${a.label}</button>`).join('')}
+          ${actions.map(a => `<button class="btn btn-sm ${a.cls}" onclick="updateStatus('${a.status}')" style="${a.disabled ? 'opacity:0.5;cursor:not-allowed;' : (a.style||'')}" ${a.disabled ? 'disabled' : ''}>${a.label}</button>`).join('')}
         </div>
       ` : o.status === 'done' ? '<p style="text-align:center;color:var(--success);font-weight:600;padding:1rem">✅ Pekerjaan Selesai</p>' : ''}
+
+      ${o.status === 'on_the_way' && o.otp_verified === true ? `
+        <div style="background:var(--success);color:#fff;padding:0.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem">
+          ✅ Customer sudah verifikasi — kamu bisa mulai pekerjaan.
+        </div>` : ''}
+
+      ${o.status === 'on_the_way' && o.otp_verified !== true ? `
+        <div style="background:#fff3cd;color:#856404;padding:0.75rem 1rem;border-radius:8px;margin-bottom:1rem;font-size:0.9rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>⏳ Menunggu customer memverifikasi kedatangan kamu. Minta customer memasukkan kode OTP di aplikasinya.</span>
+          <button class="btn btn-sm" onclick="loadJob()" style="background:#856404;color:#fff;border:none;white-space:nowrap">🔄 Cek Status</button>
+        </div>` : ''}
 
       ${o.status !== 'done' && o.status !== 'cancelled' ? `
         <div class="card" style="background:var(--gray-100);margin-bottom:1rem">

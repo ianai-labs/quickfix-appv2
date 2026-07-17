@@ -163,12 +163,19 @@ async function detail(req, res, next) {
       }
     }
 
-    // Expose OTP info to customer owner when on_the_way
+    // Expose OTP info: otp_verified for customer owner & assigned technician, otp_demo for customer only
     const payload = buildOrderResponse(order);
-    if (order.status === ORDER_STATUS.ON_THE_WAY && req.user.role === USER_ROLES.CUSTOMER && customer) {
-      payload.otp_verified = await isArrivalOtpVerified(customer.user_id);
-      if (order.otp_code) {
-        payload.otp_demo = order.otp_code;
+    if (order.status === ORDER_STATUS.ON_THE_WAY) {
+      if (req.user.role === USER_ROLES.CUSTOMER && customer) {
+        payload.otp_verified = await isArrivalOtpVerified(customer.user_id);
+        if (order.otp_code) {
+          payload.otp_demo = order.otp_code;
+        }
+      } else if (req.user.role === USER_ROLES.TECHNICIAN) {
+        const orderCustomer = await Customer.findByPk(order.customer_id);
+        if (orderCustomer) {
+          payload.otp_verified = await isArrivalOtpVerified(orderCustomer.user_id);
+        }
       }
     }
 
