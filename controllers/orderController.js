@@ -71,6 +71,17 @@ const ORDER_INCLUDES = [
   { model: OrderPhoto, attributes: ['id', 'photo_url', 'description'] },
 ];
 
+// ── Helpers ──
+
+async function isArrivalOtpVerified(customerUserId) {
+  const { OtpCode } = require('../models');
+  const otpRow = await OtpCode.findOne({
+    where: { user_id: customerUserId, type: OTP_TYPES.ORDER_VERIFY },
+    order: [['created_at', 'DESC']],
+  });
+  return !!(otpRow && otpRow.used === true);
+}
+
 // ── Controllers ──
 
 /**
@@ -139,8 +150,9 @@ async function detail(req, res, next) {
     }
 
     // Authorization: customer only own orders, technician only assigned orders
+    let customer = null;
     if (req.user.role === USER_ROLES.CUSTOMER) {
-      const customer = await Customer.findOne({ where: { user_id: req.user.user_id } });
+      customer = await Customer.findOne({ where: { user_id: req.user.user_id } });
       if (!customer || order.customer_id !== customer.id) {
         return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke order ini.' });
       }
@@ -151,7 +163,16 @@ async function detail(req, res, next) {
       }
     }
 
-    res.json({ success: true, data: { order: buildOrderResponse(order) } });
+    // Expose OTP info to customer owner when on_the_way
+    const payload = buildOrderResponse(order);
+    if (order.status === ORDER_STATUS.ON_THE_WAY && req.user.role === USER_ROLES.CUSTOMER && customer) {
+      payload.otp_verified = await isArrivalOtpVerified(customer.user_id);
+      if (order.otp_code) {
+        payload.otp_demo = order.otp_code;
+      }
+    }
+
+    res.json({ success: true, data: { order: payload } });
   } catch (error) {
     next(error);
   }
@@ -281,12 +302,8 @@ async function update(req, res, next) {
       }
       // OTP must be verified before on_the_way -> in_progress
       if (order.status === ORDER_STATUS.ON_THE_WAY && status === ORDER_STATUS.IN_PROGRESS) {
-        const { OtpCode } = require('../models');
-        const verified = await OtpCode.findOne({
-          where: { user_id: (await Customer.findByPk(order.customer_id))?.user_id, type: OTP_TYPES.ORDER_VERIFY, used: true },
-          order: [['created_at', 'DESC']],
-        });
-        if (!verified) {
+        const customer = await Customer.findByPk(order.customer_id);
+        if (!customer || !(await isArrivalOtpVerified(customer.user_id))) {
           return res.status(400).json({ success: false, message: 'Customer belum memverifikasi OTP. Teknisi tidak dapat memulai pekerjaan.' });
         }
       }
@@ -304,7 +321,10 @@ async function update(req, res, next) {
         if (customer) {
           const customerUser = await User.findByPk(customer.user_id);
           if (customerUser) {
-            await sendOTP(customerUser.id, customerUser.email, OTP_TYPES.ORDER_VERIFY);
+            const otpResult = await sendOTP(customerUser.id, customerUser.email, OTP_TYPES.ORDER_VERIFY);
+            if (otpResult._code) {
+              updateData.otp_code = otpResult._code;
+            }
           }
         }
       }
@@ -314,6 +334,11 @@ async function update(req, res, next) {
         await Technician.increment('total_jobs', {
           where: { id: order.technician_id },
         });
+      }
+
+      // Clear OTP code when leaving on_the_way to a different status
+      if (order.status === ORDER_STATUS.ON_THE_WAY && status !== ORDER_STATUS.ON_THE_WAY) {
+        updateData.otp_code = null;
       }
     }
 
@@ -385,4 +410,54 @@ async function reassign(req, res, next) {
   }
 }
 
-module.exports = { list, detail, create, update, reassign };
+/**
+ * POST /api/orders/:id/resend-otp — Customer resend arrival OTP
+ */
+async function resendOtp(req, res, next) {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order tidak ditemukan.' });
+    }
+
+    // Only customer owner can resend OTP
+    if (req.user.role !== USER_ROLES.CUSTOMER) {
+      return res.status(403).json({ success: false, message: 'Hanya pemilik order yang dapat meminta ulang kode OTP.' });
+    }
+
+    const customer = await Customer.findOne({ where: { user_id: req.user.user_id } });
+    if (!customer || order.customer_id !== customer.id) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke order ini.' });
+    }
+
+    if (order.status !== ORDER_STATUS.ON_THE_WAY) {
+      return res.status(400).json({ success: false, message: 'Kode OTP hanya tersedia saat teknisi sedang dalam perjalanan.' });
+    }
+
+    const customerUser = await User.findByPk(customer.user_id);
+    if (!customerUser) {
+      return res.status(500).json({ success: false, message: 'Data pengguna tidak ditemukan.' });
+    }
+
+    const result = await sendOTP(customerUser.id, customerUser.email, OTP_TYPES.ORDER_VERIFY);
+
+    if (result._code) {
+      await order.update({ otp_code: result._code });
+    }
+
+    const response = {
+      success: true,
+      message: 'Kode OTP baru telah dikirim.',
+    };
+
+    if (result._code) {
+      response.data = { otp_demo: result._code };
+    }
+
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { list, detail, create, update, reassign, resendOtp };

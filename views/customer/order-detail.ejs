@@ -87,8 +87,27 @@ function render(o, txn, reviews, steps, labels, idx) {
       ${o.status === 'on_the_way' ? `
         <div class="card" style="border:2px solid var(--primary);margin-top:1rem">
           <h3>🔐 Verifikasi Teknisi</h3>
-          <p style="color:var(--gray-500);font-size:0.85rem;margin:0.5rem 0">Masukkan kode OTP dari email saat teknisi tiba:</p>
-          <div style="display:flex;gap:8px"><input type="text" id="otpInput" class="form-control" placeholder="6 digit OTP" maxlength="6"><button class="btn btn-primary btn-sm" onclick="verifyOTP(${o.id})">Verifikasi</button></div>
+          ${o.otp_verified ? `
+            <p style="color:var(--success);font-weight:600;padding:0.5rem 0">✅ Terverifikasi — menunggu teknisi memulai pekerjaan</p>
+          ` : o.otp_demo ? `
+            <div style="margin:0.5rem 0">
+              <span class="badge" style="background:#f59e0b;color:#fff;padding:3px 10px;border-radius:4px;font-size:0.75rem">🔧 DEMO APLIKASI</span>
+              <p style="font-size:1.5rem;font-family:monospace;letter-spacing:0.3em;font-weight:700;text-align:center;padding:0.75rem 0;color:var(--primary)">${o.otp_demo}</p>
+              <p style="color:var(--gray-500);font-size:0.8rem">Mode demo — kode ditampilkan di sini karena email tidak dikonfigurasi. Ketik kode ini saat teknisi tiba di lokasi. Kode berlaku 5 menit.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="otpInput" class="form-control" placeholder="6 digit kode" maxlength="6" style="flex:1;min-width:120px">
+              <button class="btn btn-primary btn-sm" onclick="verifyOTP(${o.id})">Verifikasi</button>
+              <button class="btn btn-outline btn-sm" onclick="resendOTP(${o.id})" style="font-size:0.8rem">🔄 Kirim Ulang Kode</button>
+            </div>
+          ` : `
+            <p style="color:var(--gray-500);font-size:0.85rem;margin:0.5rem 0">Masukkan kode OTP dari email saat teknisi tiba:</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="otpInput" class="form-control" placeholder="6 digit OTP" maxlength="6" style="flex:1;min-width:120px">
+              <button class="btn btn-primary btn-sm" onclick="verifyOTP(${o.id})">Verifikasi</button>
+              <button class="btn btn-outline btn-sm" onclick="resendOTP(${o.id})" style="font-size:0.8rem">🔄 Kirim Ulang Kode</button>
+            </div>
+          `}
         </div>` : ''}
 
       <!-- Photo Gallery -->
@@ -184,9 +203,15 @@ async function verifyOTP(orderId) {
   const res = await api('/api/otp/verify', { method: 'POST', body: JSON.stringify({ token: getCookie('token'), code, type: 'order_verify' }) });
   const data = await res.json();
   if (data.success) {
-    await fetch(`/api/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'in_progress' }) });
-    showToast('Verifikasi berhasil!', 'success'); loadOrder();
+    showToast('Verifikasi berhasil! Teknisi akan memulai pekerjaan.', 'success'); loadOrder();
   } else showToast(data.message, 'error');
+}
+
+async function resendOTP(orderId) {
+  const res = await api(`/api/orders/${orderId}/resend-otp`, { method: 'POST' });
+  const data = await res.json();
+  if (data.success) { showToast('Kode OTP baru telah dikirim!', 'success'); loadOrder(); }
+  else showToast(data.message, 'error');
 }
 
 async function submitReview(orderId) {
